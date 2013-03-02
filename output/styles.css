@@ -5,6 +5,6 @@ body { background-color: lightgray; margin: 0; }
 .para { border: 1px solid green; }
 .table { width: auto; }
 .back { text-align: right; }
-.tablesorter .header { padding-right: 20px; background: url("sort_both.png") no-repeat scroll right center transparent; }
+.tablesorter .header { cursor: hand; cursor: pointer; padding-right: 20px; background: url("sort_both.png") no-repeat scroll right center transparent; }
 .tablesorter .headerSortUp { background: url("sort_asc.png") no-repeat scroll right center transparent; }
 .tablesorter .headerSortDown { background: url("sort_desc.png") no-repeat scroll right center transparent; }

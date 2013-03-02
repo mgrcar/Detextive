@@ -196,7 +196,7 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     authorNum++;
                     Author author = item.Value;
                     wIdx.WriteLine("<h2>Avtor: {0}</h2>", HttpUtility.HtmlEncode(item.Key));
-                    wIdx.WriteLine("<h3>Dokumenti</h3>");
+                    wIdx.WriteLine("<h3>Besedila</h3>");
                     wIdx.WriteLine("<ul>");
                     foreach (Text text in item.Value.mTexts)
                     {
@@ -367,7 +367,7 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     wAuthorCmp.WriteLine("<h3>Obseg besedišča</h3>");
                     wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
                     wAuthorCmp.WriteLine("<thead>");
-                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>TTR</th><th>BI</th><th>HS</th><th>HL</th></tr>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>DRB</th><th>BI</th><th>HS</th><th>HL</th></tr>");
                     wAuthorCmp.WriteLine("</thead>");
                     wAuthorCmp.WriteLine("<tbody>");
                     WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "ttr,brunet,honore,hl".Split(','));
@@ -376,7 +376,7 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     wAuthorCmp.WriteLine("<h3>Berljivost</h3>");
                     wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
                     wAuthorCmp.WriteLine("<thead>");
-                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>B/P</th><th>Zn/B</th><th>Zl/B</th><th>KB</th><th>ARI</th><th>Flesch</th><th>Fog</th></tr>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>B/P</th><th>Zn/B</th><th>Zl/B</th><th>DKB</th><th>ARI</th><th>Flesch</th><th>Fog</th></tr>");
                     wAuthorCmp.WriteLine("</thead>");
                     wAuthorCmp.WriteLine("<tbody>");
                     WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "rWords,rChars,rSyllables,rComplex,ari,flesch,fog".Split(','));

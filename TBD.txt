@@ -5,6 +5,6 @@
 	// http://www.ideosity.com/ourblog/post/ideosphere-blog/2010/01/14/readability-tests-and-formulas
 	// Gunning Fog = 0.4 * ((Words / Sentence) + 100 ( Complex Words / Words))
 	// A Complex Word has three or more syllables, not including proper nouns, familiar jargon or compound words, or common suffixes such as -es, -ed, or -ing as a syllable.
-[ ] Berljivost: prve 4 znacilke izracunaj na std. nacin (avg + std. dev.)
+[/] Berljivost: prve 4 znacilke izracunaj na std. nacin (avg + std. dev.)
 [ ] Obseg besedisca: dodaj se znacilke, izracunane na podlagi lem
 - Vkljuciti medmet med funkcijske besede ali ne?
