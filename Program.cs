@@ -24,10 +24,10 @@ namespace Detextive
             = Utils.GetConfigValue("DataEncoding", "UTF-8");
         static string OUTPUT_PATH
             = Utils.GetConfigValue("OutputPath", ".").TrimEnd('\\');
-        static int NUM_TOP_TOKENS
-            = 100;
-        static int NUM_TOP_LEMMAS
-            = 100;
+        //static int NUM_TOP_TOKENS
+        //    = 100;
+        //static int NUM_TOP_LEMMAS
+        //    = 100;
 
         static void WriteHeader(StreamWriter w)
         {
@@ -67,20 +67,20 @@ namespace Detextive
             w.WriteLine("<tr><td>{0}</td><td>{1:0.00}</td><td>±&nbsp;{2:0.00}</td></tr>", HttpUtility.HtmlEncode(name), val, stdDev);
         }
 
-        static void CountTokens(Text text, MultiSet<string> tokens, MultiSet<string> lemmas)
-        {
-            foreach (Sentence sentence in text.mSentences)
-            {
-                foreach (Token token in sentence.mTokens)
-                {
-                    if (!token.mIsPunctuation)
-                    {
-                        tokens.Add(token.mTokenStr.ToLower());
-                        lemmas.Add(token.mLemma.ToLower());
-                    }
-                }
-            }
-        }
+        //static void CountTokens(Text text, MultiSet<string> tokens, MultiSet<string> lemmas)
+        //{
+        //    foreach (Sentence sentence in text.mSentences)
+        //    {
+        //        foreach (Token token in sentence.mTokens)
+        //        {
+        //            if (!token.mIsPunctuation)
+        //            {
+        //                tokens.Add(token.mTokenStr.ToLower());
+        //                lemmas.Add(token.mLemma.ToLower());
+        //            }
+        //        }
+        //    }
+        //}
 
         public static double StdDev(this IEnumerable<double> values)
         {
@@ -158,7 +158,7 @@ namespace Detextive
                     posTagger.Tag(corpus);
                     Text text = new Text(corpus, title, authorName);
                     text.mIsTestText = isTestAuthor;
-                    CountTokens(text, tokens, lemmas);
+                    //CountTokens(text, tokens, lemmas);
                     Author author;
                     if (!authors.TryGetValue(text.mAuthor, out author))
                     {
@@ -177,12 +177,27 @@ namespace Detextive
                 texts.AddRange(author.mTexts);
             }
             FunctionWords.Initialize(texts);
-            FrequentWords.Initialize(texts);
+            Set<string> test;
+            FrequentWords.Initialize(texts, out test);
             FrequentLemmas.Initialize(texts);
             foreach (Author author in authors.Values)
             {
                 author.ComputeCentroids();
             }
+            //// get top tokens
+            //Set<string> topTokens = new Set<string>(
+            //    tokens.ToList()
+            //    .OrderByDescending(x => x.Key)
+            //    .Take(NUM_TOP_TOKENS)
+            //    .Select(x => x.Dat));
+            //// get top lemmas
+            //Set<string> topLemmas = new Set<string>(
+            //    lemmas.ToList()
+            //    .OrderByDescending(x => x.Key)
+            //    .Take(NUM_TOP_LEMMAS)
+            //    .Select(x => x.Dat));
+            //Console.WriteLine(Set<string>.Difference(test, topTokens));
+            //Console.WriteLine(Set<string>.Difference(topTokens, test));
             // write results
             logger.Info("Main", "Pišem rezultate ...");
             using (StreamWriter wIdx = new StreamWriter(OUTPUT_PATH + "\\index.html", /*append=*/false, Encoding.UTF8))
