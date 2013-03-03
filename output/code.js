@@ -2,10 +2,10 @@ $('.token').tooltip({ html: true });
 $.tablesorter.addParser({ 
     id: 'rndVar', 
     is: function(s) { 
-        return s.indexOf('±') != -1; 
+        return s.indexOf('Â±') != -1; 
     }, 
     format: function(s) { 
-        return s.substring(0, s.indexOf('±') - 1);
+        return s.substring(0, s.indexOf('Â±') - 1);
     }, 
     type: 'numeric' 
 }); 
