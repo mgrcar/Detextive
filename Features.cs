@@ -8,27 +8,31 @@ namespace Detextive
 {
     public static class Features
     {
-        private static int CountSyllables(string word) // *** what about "r"?
+        private static Set<char> mVowels
+            = new Set<char>("íéêáôóúìèàòùieaouÍÉÊÁÔÓÚÌÈÀÒÙIEAOU".ToCharArray()); 
+        
+        private static int CountSyllables(string word) 
         {
             int c = 0;
-            ArrayList<char> vowels = new ArrayList<char>(new char[] { 'í', 'é', 'ê', 'á', 'ô', 'ó', 'ú', 'ì', 'è', 'à', 'ò', 'ù', 'i', 'e', 'a', 'o', 'u' }); 
+            int i = 0;
             foreach (char ch in word)
             {
-                if (vowels.Contains(char.ToLower(ch))) { c++; }
+                if (mVowels.Contains(ch)) { c++; }
+                else if ((char.ToLower(ch) == 'r') && (i - 1 < 0 || !mVowels.Contains(word[i - 1])) && (i + 1 >= word.Length || !mVowels.Contains(word[i + 1]))) { c++; }
+                i++;
             }
             return c;
         }
 
-        private static void GetReadabilityFeatures(Text txt, out double rWords, out double rChars, out double rSyllables, out double rComplex, out int numWords)
+        public static void GetReadabilityFeatures(Text txt, out double ari, out double flesch, out double fog, out double rWords, out double rChars, out double rSyllables, out double rComplex)
         {
-            numWords = 0;
+            int numWords = 0;
             int numSentences = 0;
             int numChars = 0;
             int numSyllables = 0;
             int numComplexWords = 0;
             foreach (Sentence stc in txt.mSentences)
             {
-                //Console.WriteLine("Sentence: " + stc.Text);
                 int numWordsThis = 0;
                 int numCharsThis = 0;
                 int numSyllablesThis = 0;
@@ -54,12 +58,6 @@ namespace Detextive
             rChars = numWords == 0 ? 0.0 : ((double)numChars / (double)numWords);
             rSyllables = numWords == 0 ? 0.0 : ((double)numSyllables / (double)numWords);
             rComplex = numWords == 0 ? 0.0 : ((double)numComplexWords / (double)numWords);
-        }
-
-        public static void GetReadabilityFeatures(Text txt, out double ari, out double flesch, out double fog, out double rWords, out double rChars, out double rSyllables, out double rComplex)
-        {
-            int numWords;
-            GetReadabilityFeatures(txt, out rWords, out rChars, out rSyllables, out rComplex, out numWords);
             ari = 0.5 * rWords + 4.71 * rChars - 21.43;
             flesch = 206.835 - 1.015 * rWords - 84.6 * rSyllables;
             fog = 0.4 * (rWords + 100.0 * rComplex);
