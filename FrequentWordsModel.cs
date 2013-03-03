@@ -47,7 +47,7 @@ namespace Detextive
             foreach (Text text in texts) 
             { 
                 text.mFeatureVectors.Add("frw", bows[i]);
-                if (!text.mIsTestText) 
+                //if (!text.mIsTestText) 
                 { 
                     mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i])); 
                 }
