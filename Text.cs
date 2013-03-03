@@ -36,8 +36,12 @@ namespace Detextive
             = new Dictionary<string, ArrayList<double>>();
         public Dictionary<string, SparseVector<double>> mFeatureVectors
             = new Dictionary<string, SparseVector<double>>();
+        public Dictionary<string, Prediction<string>> mPredictions
+            = new Dictionary<string, Prediction<string>>();
         public bool mIsTestAuthor
             = false;
+        public int TOP_ITEMS_COUNT
+            = Convert.ToInt32(Utils.GetConfigValue("VectorItemsListSize", "100"));
 
         public Author(string name)
         {
@@ -82,12 +86,12 @@ namespace Detextive
             }
         }
 
-        public Pair<string, double>[] GetTopVectorItems(string vectorName, int n, BowSpace bowSpc)
+        public Pair<string, double>[] GetTopVectorItems(string vectorName, BowSpace bowSpc)
         {
             SparseVector<double> vec = mFeatureVectors[vectorName];
             return vec
                 .OrderByDescending(x => x.Dat)
-                .Take(n)
+                .Take(TOP_ITEMS_COUNT)
                 .Select(x => new Pair<string, double>(bowSpc.Words[x.Idx].Stem, x.Dat))
                 .ToArray();
         }
@@ -102,18 +106,27 @@ namespace Detextive
             return mFeatures[featureName].StdDev();
         }
 
-        public void ComputeDistance(Author otherAuthor, out Dictionary<string, double> diff, out Dictionary<string, double> stdDev, IEnumerable<string> featureNames)
+        public void ComputeDistance(Author otherAuthor, out Dictionary<string, double> val, out Dictionary<string, double> stdDev, IEnumerable<string> featureNames)
         {
-            diff = new Dictionary<string, double>();
+            val = new Dictionary<string, double>();
             stdDev = new Dictionary<string, double>();
             foreach (string featureName in featureNames)
             {
-                double avg = GetAvg(featureName);
-                double var = Math.Pow(GetStdDev(featureName), 2);
-                double otherAvg = otherAuthor.GetAvg(featureName);
-                double otherVar = Math.Pow(otherAuthor.GetStdDev(featureName), 2);
-                diff.Add(featureName, Math.Abs(avg - otherAvg));
-                stdDev.Add(featureName, Math.Sqrt(var + otherVar)); // http://stattrek.com/random-variable/combination.aspx
+                if (mFeatures.ContainsKey(featureName))
+                {
+                    double avg = GetAvg(featureName);
+                    double var = Math.Pow(GetStdDev(featureName), 2);
+                    double otherAvg = otherAuthor.GetAvg(featureName);
+                    double otherVar = Math.Pow(otherAuthor.GetStdDev(featureName), 2);
+                    val.Add(featureName, Math.Abs(avg - otherAvg));
+                    stdDev.Add(featureName, Math.Sqrt(var + otherVar)); // http://stattrek.com/random-variable/combination.aspx
+                }
+                else
+                {
+                    Prediction<string> p = mPredictions[featureName];
+                    try { val.Add(featureName, p.First(x => x.Dat == otherAuthor.mName).Key); }
+                    catch { val.Add(featureName, -666); }
+                }
             }
         }
     }

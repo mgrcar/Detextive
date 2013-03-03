@@ -8,59 +8,6 @@ namespace Detextive
 {
     public static class Features
     {
-        public static ArrayList<KeyDat<int, string>> GetFrequentWordsVector(Text text, Set<string> filter, bool lemmas)
-        {
-            MultiSet<string> tokens = new MultiSet<string>();
-            foreach (Sentence sentence in text.mSentences)
-            {
-                foreach (Token token in sentence.mTokens)
-                {
-                    if (!token.mIsPunctuation)
-                    {
-                        string tokenLwr = token.mTokenStr.ToLower();
-                        string lemmaLwr = token.mLemma.ToLower();
-                        if (!lemmas && filter.Contains(tokenLwr))
-                        {
-                            tokens.Add(tokenLwr);
-                        }
-                        else if (lemmas && filter.Contains(lemmaLwr))
-                        {
-                            tokens.Add(lemmaLwr);
-                        }
-                    }
-                }
-            }
-            ArrayList<KeyDat<int, string>> list = tokens.ToList();
-            list.Sort(DescSort<KeyDat<int, string>>.Instance);
-            return list;
-        }
-
-        public static ArrayList<KeyDat<int, string>> GetFunctionWordsVector(Text text)
-        {
-            MultiSet<string> functionWords = new MultiSet<string>();
-            foreach (Sentence sentence in text.mSentences)
-            {
-                foreach (Token token in sentence.mTokens)
-                {
-                    if (!token.mIsPunctuation)
-                    {
-                        if (token.mTag.StartsWith("D") ||
-                            token.mTag.StartsWith("Z") ||
-                            token.mTag.StartsWith("V") ||
-                            token.mTag.StartsWith("Gp") ||
-                            token.mTag.StartsWith("M") ||
-                            token.mTag.StartsWith("L"))
-                        {
-                            functionWords.Add(token.mTokenStr.ToLower());
-                        }
-                    }
-                }
-            }
-            ArrayList<KeyDat<int, string>> list = functionWords.ToList();
-            list.Sort(DescSort<KeyDat<int, string>>.Instance);
-            return list;
-        }
-
         private static int CountSyllables(string word) // *** what about "r"?
         {
             int c = 0;

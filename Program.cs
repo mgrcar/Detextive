@@ -24,10 +24,6 @@ namespace Detextive
             = Utils.GetConfigValue("DataEncoding", "UTF-8");
         static string OUTPUT_PATH
             = Utils.GetConfigValue("OutputPath", ".").TrimEnd('\\');
-        //static int NUM_TOP_TOKENS
-        //    = 100;
-        //static int NUM_TOP_LEMMAS
-        //    = 100;
 
         static void WriteHeader(StreamWriter w)
         {
@@ -67,21 +63,6 @@ namespace Detextive
             w.WriteLine("<tr><td>{0}</td><td>{1:0.00}</td><td>±&nbsp;{2:0.00}</td></tr>", HttpUtility.HtmlEncode(name), val, stdDev);
         }
 
-        //static void CountTokens(Text text, MultiSet<string> tokens, MultiSet<string> lemmas)
-        //{
-        //    foreach (Sentence sentence in text.mSentences)
-        //    {
-        //        foreach (Token token in sentence.mTokens)
-        //        {
-        //            if (!token.mIsPunctuation)
-        //            {
-        //                tokens.Add(token.mTokenStr.ToLower());
-        //                lemmas.Add(token.mLemma.ToLower());
-        //            }
-        //        }
-        //    }
-        //}
-
         public static double StdDev(this IEnumerable<double> values)
         {
             double ret = 0;
@@ -99,7 +80,7 @@ namespace Detextive
         {
             foreach (Author otherAuthor in authors)
             {
-                if (author != otherAuthor)
+                if (author != otherAuthor && !otherAuthor.mIsTestAuthor)
                 {
                     Dictionary<string, double> diff, stdDev;
                     author.ComputeDistance(otherAuthor, out diff, out stdDev, featureNames);
@@ -158,7 +139,6 @@ namespace Detextive
                     posTagger.Tag(corpus);
                     Text text = new Text(corpus, title, authorName);
                     text.mIsTestText = isTestAuthor;
-                    //CountTokens(text, tokens, lemmas);
                     Author author;
                     if (!authors.TryGetValue(text.mAuthor, out author))
                     {
@@ -176,28 +156,25 @@ namespace Detextive
                 author.ComputeFeatures();
                 texts.AddRange(author.mTexts);
             }
-            FunctionWords.Initialize(texts);
-            Set<string> test;
-            FrequentWords.Initialize(texts, out test);
-            FrequentLemmas.Initialize(texts);
+            FunctionWordsModel fuw = new FunctionWordsModel();
+            fuw.Initialize(texts);
+            FrequentWordsModel frw = new FrequentWordsModel();
+            frw.Initialize(texts);
+            FrequentLemmasModel frl = new FrequentLemmasModel();
+            frl.Initialize(texts);
+            CharNGramsModel cng = new CharNGramsModel();
+            cng.Initialize(texts);
             foreach (Author author in authors.Values)
             {
                 author.ComputeCentroids();
+                if (author.mIsTestAuthor)
+                {
+                    author.mPredictions.Add("fuw", fuw.mModel.Predict(author.mFeatureVectors["fuw"]));
+                    author.mPredictions.Add("frw", frw.mModel.Predict(author.mFeatureVectors["frw"]));
+                    author.mPredictions.Add("frl", frl.mModel.Predict(author.mFeatureVectors["frl"]));
+                    author.mPredictions.Add("cng", cng.mModel.Predict(author.mFeatureVectors["cng"]));
+                }
             }
-            //// get top tokens
-            //Set<string> topTokens = new Set<string>(
-            //    tokens.ToList()
-            //    .OrderByDescending(x => x.Key)
-            //    .Take(NUM_TOP_TOKENS)
-            //    .Select(x => x.Dat));
-            //// get top lemmas
-            //Set<string> topLemmas = new Set<string>(
-            //    lemmas.ToList()
-            //    .OrderByDescending(x => x.Key)
-            //    .Take(NUM_TOP_LEMMAS)
-            //    .Select(x => x.Dat));
-            //Console.WriteLine(Set<string>.Difference(test, topTokens));
-            //Console.WriteLine(Set<string>.Difference(topTokens, test));
             // write results
             logger.Info("Main", "Pišem rezultate ...");
             using (StreamWriter wIdx = new StreamWriter(OUTPUT_PATH + "\\index.html", /*append=*/false, Encoding.UTF8))
@@ -261,7 +238,7 @@ namespace Detextive
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
                             wDoc.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                             int i = 0;
-                            foreach (KeyDat<double, Word> wordInfo in FunctionWords.mBowSpace.GetKeywords(text.mFeatureVectors["fuw"]))
+                            foreach (KeyDat<double, Word> wordInfo in fuw.mBowSpace.GetKeywords(text.mFeatureVectors["fuw"]))
                             {
                                 wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat.Stem), wordInfo.Key);
                             }
@@ -273,7 +250,7 @@ namespace Detextive
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
                             wDoc.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                             i = 0;
-                            foreach (KeyDat<double, Word> wordInfo in FrequentWords.mBowSpace.GetKeywords(text.mFeatureVectors["frw"]))
+                            foreach (KeyDat<double, Word> wordInfo in frw.mBowSpace.GetKeywords(text.mFeatureVectors["frw"]))
                             {
                                 wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat.Stem), wordInfo.Key);
                             }
@@ -285,7 +262,7 @@ namespace Detextive
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
                             wDoc.WriteLine("<tr><th>Zap. št.</th><th>Lema</th><th>Utež</th></tr>");
                             i = 0;
-                            foreach (KeyDat<double, Word> wordInfo in FrequentLemmas.mBowSpace.GetKeywords(text.mFeatureVectors["frl"]))
+                            foreach (KeyDat<double, Word> wordInfo in frl.mBowSpace.GetKeywords(text.mFeatureVectors["frl"]))
                             {
                                 wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat.Stem), wordInfo.Key);
                             }
@@ -321,7 +298,7 @@ namespace Detextive
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     int j = 0;
-                    foreach (Pair<string, double> word in author.GetTopVectorItems("fuw", int.MaxValue, FunctionWords.mBowSpace))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("fuw", fuw.mBowSpace))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
@@ -333,7 +310,7 @@ namespace Detextive
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     j = 0;
-                    foreach (Pair<string, double> word in author.GetTopVectorItems("frw", int.MaxValue, FrequentWords.mBowSpace))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("frw", frw.mBowSpace))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
@@ -345,7 +322,19 @@ namespace Detextive
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     j = 0;
-                    foreach (Pair<string, double> word in author.GetTopVectorItems("frl", int.MaxValue, FrequentLemmas.mBowSpace))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("frl", frl.mBowSpace))
+                    {
+                        wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
+                    }
+                    wIdx.WriteLine("</table>");
+                    wIdx.WriteLine("</div>");
+                    wIdx.WriteLine("<h4>Znakovna zaporedja</h4>");
+                    wIdx.WriteLine("<a href='javascript:void(0)' data-toggle='collapse' data-target='#cng_{0}'>Seznam znakovnih zaporedij</a>", authorNum);
+                    wIdx.WriteLine("<div id='cng_{0}' class='collapse'>", authorNum);
+                    wIdx.WriteLine("<table class='table table-bordered table-striped'>");
+                    wIdx.WriteLine("<tr><th>Zap. št.</th><th>Zaporedje</th><th>Utež</th></tr>");
+                    j = 0;
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("cng", cng.mBowSpace))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
@@ -382,16 +371,19 @@ namespace Detextive
                     wAuthorCmp.WriteLine("<tbody>");
                     WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "rWords,rChars,rSyllables,rComplex,ari,flesch,fog".Split(','));
                     wAuthorCmp.WriteLine("</tbody>");
-                    wAuthorCmp.WriteLine("</table>");
-                    //wAuthorCmp.WriteLine("<h3>Vektorji značilk</h3>");
-                    //wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
-                    //wAuthorCmp.WriteLine("<thead>");
-                    //wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>FB</th><th>PB</th><th>PL</th></tr>");
-                    //wAuthorCmp.WriteLine("</thead>");
-                    //wAuthorCmp.WriteLine("<tbody>");
-                    //WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "fuw,frw,frl".Split(','));
-                    //wAuthorCmp.WriteLine("</tbody>");
-                    //wAuthorCmp.WriteLine("</table>");
+                    wAuthorCmp.WriteLine("</table>");                    
+                    if (author.mIsTestAuthor)
+                    {
+                        wAuthorCmp.WriteLine("<h3>Vektorji značilk</h3>");
+                        wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
+                        wAuthorCmp.WriteLine("<thead>");
+                        wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>FB</th><th>PB</th><th>PL</th><th>ZZ</th></tr>");
+                        wAuthorCmp.WriteLine("</thead>");
+                        wAuthorCmp.WriteLine("<tbody>");
+                        WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "fuw,frw,frl,cng".Split(','));
+                        wAuthorCmp.WriteLine("</tbody>");
+                        wAuthorCmp.WriteLine("</table>");
+                    }
                     WriteFooter(wAuthorCmp);
                 }
             }

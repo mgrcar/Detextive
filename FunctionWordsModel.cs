@@ -4,35 +4,42 @@ using System.Collections;
 using System.Collections.Generic;
 using Latino;
 using Latino.TextMining;
+using Latino.Model;
 
 namespace Detextive
 {
-    public static class CharNGrams
+    public class FunctionWordsModel : ModelBase
     {
-        public static BowSpace mBowSpace
-            = new BowSpace();
-
-        static CharNGrams()
+        public FunctionWordsModel()
         {
             mBowSpace.CutLowWeightsPerc = 0;
             mBowSpace.MaxNGramLen = 1;
-            mBowSpace.MinWordFreq = 1; // *** config
-            mBowSpace.NormalizeVectors = true; // *** config
+            mBowSpace.MinWordFreq = 1; 
+            mBowSpace.NormalizeVectors = true; 
             mBowSpace.Stemmer = null;
-            mBowSpace.WordWeightType = WordWeightType.TfIdf; // *** config
+            mBowSpace.WordWeightType = GetWeightTypeConfig("FunctionWordsWeightType");
         }
 
-        public static ArrayList<SparseVector<double>> Initialize(IEnumerable<Text> texts)
+        public void Initialize(IEnumerable<Text> texts)
         {
-            return mBowSpace.InitializeTokenized(texts.Select(x => (ITokenizer)new Tokenizer(x)), /*largeScale=*/false);
+            ArrayList<SparseVector<double>> bows = mBowSpace.InitializeTokenized(texts.Select(x => (ITokenizer)new Tokenizer(x)), /*largeScale=*/false);
+            int i = 0;
+            foreach (Text text in texts) 
+            { 
+                text.mFeatureVectors.Add("fuw", bows[i]);
+                if (!text.mIsTestText)
+                {
+                    mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i]));
+                }
+                i++;
+            }
+            TrainModels();
         }
 
         public class Tokenizer : ITokenizer
         {
             private ArrayList<string> mTokens
                 = new ArrayList<string>();
-            private int MAX_NGRAM_LEN
-                = 3;
 
             public Tokenizer(Text text)
             {
@@ -41,27 +48,22 @@ namespace Detextive
 
             private void Tokenize(Text text)
             {
-                for (int n = 1; n <= MAX_NGRAM_LEN; n++)
+                foreach (Sentence sentence in text.mSentences)
                 {
-                    foreach (Sentence sentence in text.mSentences)
+                    foreach (Token token in sentence.mTokens)
                     {
-                        Queue<char> queue = new Queue<char>();
-                        for (int i = 0; i < n; i++) { queue.Enqueue('_'); } // padding left
-                        foreach (Token token in sentence.mTokens)
+                        if (!token.mIsPunctuation)
                         {
-                            string tokenStr = token.mTokenStr;
-                            foreach (char ch in tokenStr)
+                            if (token.mTag.StartsWith("D") ||
+                                token.mTag.StartsWith("Z") ||
+                                token.mTag.StartsWith("V") ||
+                                token.mTag.StartsWith("Gp") ||
+                                token.mTag.StartsWith("M") ||
+                                token.mTag.StartsWith("L"))
                             {
-                                queue.Enqueue(ch); queue.Dequeue();
-                                mTokens.Add(new string(queue.ToArray()));
-                            }
-                            if (token.mIsFollowedBySpace)
-                            {
-                                queue.Enqueue('_'); queue.Dequeue();
-                                mTokens.Add(new string(queue.ToArray()));
+                                mTokens.Add(token.mTokenStr.ToLower());
                             }
                         }
-                        // TODO: padding right
                     }
                 }
             }

@@ -43,12 +43,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CharNGrams.cs">
+    <Compile Include="ModelBase.cs" />
+    <Compile Include="CharNGramsModel.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="FrequentLemmas.cs" />
-    <Compile Include="FrequentWords.cs" />
-    <Compile Include="FunctionWords.cs" />
+    <Compile Include="FrequentLemmasModel.cs" />
+    <Compile Include="FrequentWordsModel.cs" />
+    <Compile Include="FunctionWordsModel.cs" />
     <Compile Include="Features.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -4,25 +4,23 @@ using System.Collections;
 using System.Collections.Generic;
 using Latino;
 using Latino.TextMining;
+using Latino.Model;
 
 namespace Detextive
 {
-    public static class FrequentLemmas
+    public class FrequentLemmasModel : ModelBase
     {
-        public static BowSpace mBowSpace
-            = new BowSpace();
-
-        static FrequentLemmas()
+        public FrequentLemmasModel()
         {
             mBowSpace.CutLowWeightsPerc = 0;
             mBowSpace.MaxNGramLen = 1;
             mBowSpace.MinWordFreq = 1; 
             mBowSpace.NormalizeVectors = true; 
             mBowSpace.Stemmer = null;
-            mBowSpace.WordWeightType = WordWeightType.TermFreq; // *** config
+            mBowSpace.WordWeightType = GetWeightTypeConfig("FrequentLemmasWeightType");
         }
 
-        public static void Initialize(IEnumerable<Text> texts)
+        public void Initialize(IEnumerable<Text> texts)
         {
             // compute most frequent lemmas
             MultiSet<string> tokens = new MultiSet<string>();
@@ -42,11 +40,20 @@ namespace Detextive
             Set<string> filter = new Set<string>(
                 tokens.ToList()
                 .OrderByDescending(x => x.Key)
-                .Take(100) // *** config
+                .Take(Convert.ToInt32(Utils.GetConfigValue("NumFrequentLemmas", "100")))
                 .Select(x => x.Dat));
             ArrayList<SparseVector<double>> bows = mBowSpace.InitializeTokenized(texts.Select(x => (ITokenizer)new Tokenizer(x, filter)), /*largeScale=*/false);
             int i = 0;
-            foreach (Text text in texts) { text.mFeatureVectors.Add("frl", bows[i++]); }
+            foreach (Text text in texts) 
+            { 
+                text.mFeatureVectors.Add("frl", bows[i]);
+                if (!text.mIsTestText)
+                {
+                    mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i]));
+                }
+                i++;
+            }
+            TrainModels();
         }
 
         public class Tokenizer : ITokenizer

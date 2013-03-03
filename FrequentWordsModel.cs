@@ -4,25 +4,23 @@ using System.Collections;
 using System.Collections.Generic;
 using Latino;
 using Latino.TextMining;
+using Latino.Model;
 
 namespace Detextive
 {
-    public static class FrequentWords
+    public class FrequentWordsModel : ModelBase
     {
-        public static BowSpace mBowSpace
-            = new BowSpace();
-
-        static FrequentWords()
+        public FrequentWordsModel()
         {
             mBowSpace.CutLowWeightsPerc = 0;
             mBowSpace.MaxNGramLen = 1;
             mBowSpace.MinWordFreq = 1;
             mBowSpace.NormalizeVectors = true;
             mBowSpace.Stemmer = null;
-            mBowSpace.WordWeightType = WordWeightType.TermFreq; // *** config
+            mBowSpace.WordWeightType = GetWeightTypeConfig("FrequentWordsWeightType");
         }
 
-        public static void Initialize(IEnumerable<Text> texts, out Set<string> _filter)
+        public void Initialize(IEnumerable<Text> texts)
         {
             // compute most frequent words
             MultiSet<string> tokens = new MultiSet<string>();
@@ -39,14 +37,23 @@ namespace Detextive
                     }
                 }
             }
-            Set<string> filter = _filter = new Set<string>(
+            Set<string> filter = new Set<string>(
                 tokens.ToList()
                 .OrderByDescending(x => x.Key)
-                .Take(100) // *** config
+                .Take(Convert.ToInt32(Utils.GetConfigValue("NumFrequentWords", "100")))
                 .Select(x => x.Dat));
             ArrayList<SparseVector<double>> bows = mBowSpace.InitializeTokenized(texts.Select(x => (ITokenizer)new Tokenizer(x, filter)), /*largeScale=*/false);
             int i = 0;
-            foreach (Text text in texts) { text.mFeatureVectors.Add("frw", bows[i++]); }
+            foreach (Text text in texts) 
+            { 
+                text.mFeatureVectors.Add("frw", bows[i]);
+                if (!text.mIsTestText) 
+                { 
+                    mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i])); 
+                }
+                i++;
+            }
+            TrainModels();
         }
 
         public class Tokenizer : ITokenizer
