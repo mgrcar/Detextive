@@ -186,13 +186,19 @@ namespace Detextive
         public void ComputeFeatures()
         {
             double ttr, hl, honore, brunet;
-            Features.GetVocabularyRichness(this, out ttr, out hl, out honore, out brunet);
+            Features.GetVocabularyRichness(this, out ttr, out hl, out honore, out brunet, /*lemmas=*/false);
+            double ttrLemma, hlLemma, honoreLemma, brunetLemma;
+            Features.GetVocabularyRichness(this, out ttrLemma, out hlLemma, out honoreLemma, out brunetLemma, /*lemmas=*/true);
             double ari, flesch, fog, rWords, rChars, rSyllables, rComplex;
             Features.GetReadabilityFeatures(this, out ari, out flesch, out fog, out rWords, out rChars, out rSyllables, out rComplex);
             mFeatures.Add("ttr", ttr);
             mFeatures.Add("brunet", brunet);
             mFeatures.Add("honore", honore);
             mFeatures.Add("hl", hl);
+            mFeatures.Add("ttrLemma", ttrLemma);
+            mFeatures.Add("brunetLemma", brunetLemma);
+            mFeatures.Add("honoreLemma", honoreLemma);
+            mFeatures.Add("hlLemma", hlLemma);
             mFeatures.Add("ari", ari);
             mFeatures.Add("flesch", flesch);
             mFeatures.Add("fog", fog);

@@ -64,7 +64,7 @@ namespace Detextive
             fog = 0.4 * (rWords + 100.0 * rComplex);
         }
 
-        public static void GetVocabularyRichness(Text text, out double ttr, out double hl, out double honore, out double brunet)
+        public static void GetVocabularyRichness(Text text, out double ttr, out double hl, out double honore, out double brunet, bool lemmas)
         {
             // type-token ratio (TTR)
             MultiSet<string> tokens = new MultiSet<string>();          
@@ -75,7 +75,8 @@ namespace Detextive
                 {
                     if (!token.mIsPunctuation) 
                     {
-                        tokens.Add(token.mTokenStr.ToLower()); // *** should I take lemma here?
+                        if (lemmas) { tokens.Add(token.mLemma.ToLower()); }
+                        else { tokens.Add(token.mTokenStr.ToLower()); }
                         n++;
                     }
                 }

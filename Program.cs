@@ -116,7 +116,7 @@ namespace Detextive
             MultiSet<string> lemmas = new MultiSet<string>();
             logger.Info("Main", "Nalagam podatke ...");
             Dictionary<string, Author> authors = new Dictionary<string, Author>();
-            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories();//.Take(3).ToArray();
+            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories().Take(3).ToArray();
             foreach (DirectoryInfo authorDir in authorDirs)
             {
                 string authorName = authorDir.Name;
@@ -216,6 +216,10 @@ namespace Detextive
                             WriteFeature(wDoc, "Brunetov indeks", text.mFeatures["brunet"]);
                             WriteFeature(wDoc, "Honorejeva statistika", text.mFeatures["honore"]);
                             WriteFeature(wDoc, "Hapax legomena", text.mFeatures["hl"]);
+                            WriteFeature(wDoc, "Delež različnih lem", text.mFeatures["ttrLemma"]);
+                            WriteFeature(wDoc, "Brunetov indeks (leme)", text.mFeatures["brunetLemma"]);
+                            WriteFeature(wDoc, "Honorejeva statistika (leme)", text.mFeatures["honoreLemma"]);
+                            WriteFeature(wDoc, "Hapax legomena (leme)", text.mFeatures["hlLemma"]);                            
                             wDoc.WriteLine("</tbody>");
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("<h2>Berljivost</h2>");
@@ -314,6 +318,10 @@ namespace Detextive
                     WriteFeature(wIdx, "Brunetov indeks", author.GetAvg("brunet"), author.GetStdDev("brunet"));
                     WriteFeature(wIdx, "Honorejeva statistika", author.GetAvg("honore"), author.GetStdDev("honore"));
                     WriteFeature(wIdx, "Hapax legomena", author.GetAvg("hl"), author.GetStdDev("hl"));
+                    WriteFeature(wIdx, "Delež različnih lem", author.GetAvg("ttrLemma"), author.GetStdDev("ttrLemma"));
+                    WriteFeature(wIdx, "Brunetov indeks (leme)", author.GetAvg("brunetLemma"), author.GetStdDev("brunetLemma"));
+                    WriteFeature(wIdx, "Honorejeva statistika (leme)", author.GetAvg("honoreLemma"), author.GetStdDev("honoreLemma"));
+                    WriteFeature(wIdx, "Hapax legomena (leme)", author.GetAvg("hlLemma"), author.GetStdDev("hlLemma"));                    
                     wIdx.WriteLine("</tbody>");
                     wIdx.WriteLine("</table>");
                     wIdx.WriteLine("<h4>Berljivost</h4>");
@@ -412,16 +420,16 @@ namespace Detextive
                     wAuthorCmp.WriteLine("<h3>Obseg besedišča</h3>");
                     wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
                     wAuthorCmp.WriteLine("<thead>");
-                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>DRB</th><th>BI</th><th>HS</th><th>HL</th></tr>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>DRB</th><th>BI</th><th>HS</th><th>HL</th><th>DRL</th><th>BI-L</th><th>HS-L</th><th>HL-L</th></tr>");
                     wAuthorCmp.WriteLine("</thead>");
                     wAuthorCmp.WriteLine("<tbody>");
-                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "ttr,brunet,honore,hl".Split(','));
+                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "ttr,brunet,honore,hl,ttrLemma,brunetLemma,honoreLemma,hlLemma".Split(','));
                     wAuthorCmp.WriteLine("</tbody>");
                     wAuthorCmp.WriteLine("</table>");
                     wAuthorCmp.WriteLine("<h3>Berljivost</h3>");
                     wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
                     wAuthorCmp.WriteLine("<thead>");
-                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>B/P</th><th>Zn/B</th><th>Zl/B</th><th>DKB</th><th>ARI</th><th>Flesch</th><th>Fog</th></tr>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>B/P</th><th>Zn./B</th><th>Zl./B</th><th>DKB</th><th>ARI</th><th>Flesch</th><th>Fog</th></tr>");
                     wAuthorCmp.WriteLine("</thead>");
                     wAuthorCmp.WriteLine("<tbody>");
                     WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "rWords,rChars,rSyllables,rComplex,ari,flesch,fog".Split(','));
