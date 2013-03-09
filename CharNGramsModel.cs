@@ -18,19 +18,19 @@ namespace Detextive
             mBowSpace.NormalizeVectors = true; 
             mBowSpace.Stemmer = null;
             mBowSpace.WordWeightType = GetWeightTypeConfig("CharNGramsWeightType");
+            mSelector = "cng";
         }
 
-        public void Initialize(IEnumerable<Text> texts)
+        public void Initialize(IEnumerable<Author> authors)
         {
+            IEnumerable<Text> texts = authors.SelectMany(x => x.mTexts);
             ArrayList<SparseVector<double>> bows = mBowSpace.InitializeTokenized(texts.Select(x => (ITokenizer)new Tokenizer(x)), /*largeScale=*/false);
             int i = 0;
             foreach (Text text in texts)
             {
-                text.mFeatureVectors.Add("cng", bows[i]);
-                mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i]));
-                i++;
+                text.mFeatureVectors.Add(mSelector, bows[i++]);
             }
-            TrainModels();
+            TrainModels(authors);
         }
 
         public class Tokenizer : ITokenizer

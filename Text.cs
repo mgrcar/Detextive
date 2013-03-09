@@ -3,10 +3,11 @@ using System.Linq;
 using System.Text;
 using System.Web;
 using System.Collections.Generic;
+using System.IO;
 using Latino;
-using PosTagger;
 using Latino.Model;
 using Latino.TextMining;
+using PosTagger;
 
 namespace Detextive
 {
@@ -15,6 +16,7 @@ namespace Detextive
         public string mTokenStr;
         public string mLemma;
         public string mTag;
+        public string mTagReduced;
         public bool mIsPunctuation
             = false;
         public bool mIsFollowedBySpace
@@ -38,7 +40,7 @@ namespace Detextive
             = new Dictionary<string, SparseVector<double>>();
         public Dictionary<string, Prediction<string>> mPredictions
             = new Dictionary<string, Prediction<string>>();
-        public bool mIsTaggedAuthor
+        public bool mIsTagged
             = false;
 
         public Author(string name)
@@ -131,6 +133,8 @@ namespace Detextive
 
     public class Text
     {
+        public static Dictionary<string, string> mTagMapping
+            = new Dictionary<string, string>();
         public string mName;
         public string mAuthor;
         public ArrayList<Sentence> mSentences
@@ -141,6 +145,24 @@ namespace Detextive
             = new Dictionary<string, SparseVector<double>>();
         public string mHtmlFileName
             = Guid.NewGuid().ToString("N") + ".html";
+        public bool mIsTagged
+            = false;
+
+        static Text()
+        {
+            using (Stream s = Utils.GetManifestResourceStream(typeof(Token), "TagMapping.txt"))
+            {
+                using (StreamReader r = new StreamReader(s))
+                {
+                    string line;
+                    while ((line = r.ReadLine()) != null)
+                    {
+                        string[] mapping = line.Split('\t');
+                        mTagMapping.Add(mapping[0], mapping[1]);
+                    }
+                }
+            }
+        }
 
         public Text(Corpus corpus, string name, string author)
         {
@@ -158,13 +180,14 @@ namespace Detextive
                 if (taggedWord.MoreInfo.Punctuation)
                 {
                     token.mIsPunctuation = true;
-                    token.mTokenStr = token.mLemma = token.mTag = taggedWord.Word;
+                    token.mTokenStr = token.mLemma = token.mTag = token.mTagReduced = taggedWord.Word;
                 }
                 else // word
                 {
                     token.mTokenStr = taggedWord.Word;
                     token.mLemma = taggedWord.Lemma;
                     token.mTag = tag;
+                    token.mTagReduced = mTagMapping[tag];
                 }
                 if (taggedWord.MoreInfo.FollowedBySpace)
                 {
@@ -218,8 +241,10 @@ namespace Detextive
                 {
                     if (!token.mIsPunctuation)
                     {
-                        sb.Append(string.Format("<span class='token' data-toggle='tooltip' title='Oznaka: {0}&lt;br&gt;Lema: {1}'>",
-                            HttpUtility.HtmlEncode(token.mTag).Replace("'", "&#39;"), HttpUtility.HtmlEncode(token.mLemma).Replace("'", "&#39;")));
+                        sb.Append(string.Format("<span class='token' data-toggle='tooltip' title='Oznaka: {0}&lt;br&gt;Kratka oznaka: {1}&lt;br&gt;Lema: {2}'>",
+                            HttpUtility.HtmlEncode(token.mTag).Replace("'", "&#39;"),
+                            HttpUtility.HtmlEncode(token.mTagReduced).Replace("'", "&#39;"), 
+                            HttpUtility.HtmlEncode(token.mLemma).Replace("'", "&#39;")));
                     }
                     else
                     {

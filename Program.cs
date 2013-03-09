@@ -116,7 +116,7 @@ namespace Detextive
             MultiSet<string> lemmas = new MultiSet<string>();
             logger.Info("Main", "Nalagam podatke ...");
             Dictionary<string, Author> authors = new Dictionary<string, Author>();
-            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories().Take(3).ToArray();
+            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories();//.Take(3).ToArray();
             foreach (DirectoryInfo authorDir in authorDirs)
             {
                 string authorName = authorDir.Name;
@@ -143,34 +143,30 @@ namespace Detextive
                     if (!authors.TryGetValue(text.mAuthor, out author))
                     {
                         author = new Author(text.mAuthor);
-                        author.mIsTaggedAuthor = isTaggedAuthor;
+                        author.mIsTagged = isTaggedAuthor;
+                        text.mIsTagged = isTaggedAuthor;
                         author.mTexts.Add(text);
                         authors.Add(text.mAuthor, author);                        
                     }
                     else { author.mTexts.Add(text); }
                 }
             }
-            ArrayList<Text> texts = new ArrayList<Text>();
+            FunctionWordsModel fuw = new FunctionWordsModel();
+            fuw.Initialize(authors.Values);
+            FrequentWordsModel frw = new FrequentWordsModel();
+            frw.Initialize(authors.Values);
+            FrequentLemmasModel frl = new FrequentLemmasModel();
+            frl.Initialize(authors.Values);
+            CharNGramsModel cng = new CharNGramsModel();
+            cng.Initialize(authors.Values);
             foreach (Author author in authors.Values)
             {
                 author.ComputeFeatures();
-                texts.AddRange(author.mTexts);
-            }
-            FunctionWordsModel fuw = new FunctionWordsModel();
-            fuw.Initialize(texts);
-            FrequentWordsModel frw = new FrequentWordsModel();
-            frw.Initialize(texts);
-            FrequentLemmasModel frl = new FrequentLemmasModel();
-            frl.Initialize(texts);
-            CharNGramsModel cng = new CharNGramsModel();
-            cng.Initialize(texts);
-            foreach (Author author in authors.Values)
-            {
                 author.ComputeCentroids();
-                author.mPredictions.Add("fuw", fuw.mModel.Predict(author.mFeatureVectors["fuw"]));
-                author.mPredictions.Add("frw", frw.mModel.Predict(author.mFeatureVectors["frw"]));
-                author.mPredictions.Add("frl", frl.mModel.Predict(author.mFeatureVectors["frl"]));
-                author.mPredictions.Add("cng", cng.mModel.Predict(author.mFeatureVectors["cng"]));
+                author.mPredictions.Add("fuw", fuw.mModels[author.mName].Predict(author.mFeatureVectors["fuw"]));
+                author.mPredictions.Add("frw", frw.mModels[author.mName].Predict(author.mFeatureVectors["frw"]));
+                author.mPredictions.Add("frl", frl.mModels[author.mName].Predict(author.mFeatureVectors["frl"]));
+                author.mPredictions.Add("cng", cng.mModels[author.mName].Predict(author.mFeatureVectors["cng"]));
             }
             // write results
             logger.Info("Main", "Pišem rezultate ...");
@@ -184,7 +180,7 @@ namespace Detextive
                     authorNum++;
                     Author author = item.Value;
                     wIdx.WriteLine("<h2>Avtor: {0}</h2>", HttpUtility.HtmlEncode(item.Key));
-                    if (author.mIsTaggedAuthor)
+                    if (author.mIsTagged)
                     {
                         wIdx.WriteLine("<div class='alert alert-info'><strong>Neznani avtor.</strong> <a href='{0}'>Primerjaj z ostalimi avtorji »</a></div>", "compare_" + authorNum + ".html");
                     }
@@ -213,12 +209,12 @@ namespace Detextive
                             wDoc.WriteLine("</thead>");
                             wDoc.WriteLine("<tbody>");
                             WriteFeature(wDoc, "Delež različnih besed", text.mFeatures["ttr"]);
-                            WriteFeature(wDoc, "Brunetov indeks", text.mFeatures["brunet"]);
-                            WriteFeature(wDoc, "Honorejeva statistika", text.mFeatures["honore"]);
+                            WriteFeature(wDoc, "Brunétov indeks", text.mFeatures["brunet"]);
+                            WriteFeature(wDoc, "Honoréjeva statistika", text.mFeatures["honore"]);
                             WriteFeature(wDoc, "Hapax legomena", text.mFeatures["hl"]);
                             WriteFeature(wDoc, "Delež različnih lem", text.mFeatures["ttrLemma"]);
-                            WriteFeature(wDoc, "Brunetov indeks (leme)", text.mFeatures["brunetLemma"]);
-                            WriteFeature(wDoc, "Honorejeva statistika (leme)", text.mFeatures["honoreLemma"]);
+                            WriteFeature(wDoc, "Brunétov indeks (leme)", text.mFeatures["brunetLemma"]);
+                            WriteFeature(wDoc, "Honoréjeva statistika (leme)", text.mFeatures["honoreLemma"]);
                             WriteFeature(wDoc, "Hapax legomena (leme)", text.mFeatures["hlLemma"]);                            
                             wDoc.WriteLine("</tbody>");
                             wDoc.WriteLine("</table>");
@@ -315,12 +311,12 @@ namespace Detextive
                     wIdx.WriteLine("</thead>");
                     wIdx.WriteLine("<tbody>");
                     WriteFeature(wIdx, "Delež različnih besed", author.GetAvg("ttr"), author.GetStdDev("ttr"));
-                    WriteFeature(wIdx, "Brunetov indeks", author.GetAvg("brunet"), author.GetStdDev("brunet"));
-                    WriteFeature(wIdx, "Honorejeva statistika", author.GetAvg("honore"), author.GetStdDev("honore"));
+                    WriteFeature(wIdx, "Brunétov indeks", author.GetAvg("brunet"), author.GetStdDev("brunet"));
+                    WriteFeature(wIdx, "Honoréjeva statistika", author.GetAvg("honore"), author.GetStdDev("honore"));
                     WriteFeature(wIdx, "Hapax legomena", author.GetAvg("hl"), author.GetStdDev("hl"));
                     WriteFeature(wIdx, "Delež različnih lem", author.GetAvg("ttrLemma"), author.GetStdDev("ttrLemma"));
-                    WriteFeature(wIdx, "Brunetov indeks (leme)", author.GetAvg("brunetLemma"), author.GetStdDev("brunetLemma"));
-                    WriteFeature(wIdx, "Honorejeva statistika (leme)", author.GetAvg("honoreLemma"), author.GetStdDev("honoreLemma"));
+                    WriteFeature(wIdx, "Brunétov indeks (leme)", author.GetAvg("brunetLemma"), author.GetStdDev("brunetLemma"));
+                    WriteFeature(wIdx, "Honoréjeva statistika (leme)", author.GetAvg("honoreLemma"), author.GetStdDev("honoreLemma"));
                     WriteFeature(wIdx, "Hapax legomena (leme)", author.GetAvg("hlLemma"), author.GetStdDev("hlLemma"));                    
                     wIdx.WriteLine("</tbody>");
                     wIdx.WriteLine("</table>");

@@ -18,10 +18,12 @@ namespace Detextive
             mBowSpace.NormalizeVectors = true;
             mBowSpace.Stemmer = null;
             mBowSpace.WordWeightType = GetWeightTypeConfig("FrequentWordsWeightType");
+            mSelector = "frw";
         }
 
-        public void Initialize(IEnumerable<Text> texts)
+        public void Initialize(IEnumerable<Author> authors)
         {
+            IEnumerable<Text> texts = authors.SelectMany(x => x.mTexts);
             // compute most frequent words
             MultiSet<string> tokens = new MultiSet<string>();
             foreach (Text text in texts)
@@ -46,11 +48,9 @@ namespace Detextive
             int i = 0;
             foreach (Text text in texts) 
             { 
-                text.mFeatureVectors.Add("frw", bows[i]);
-                mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i])); 
-                i++;
+                text.mFeatureVectors.Add(mSelector, bows[i++]);
             }
-            TrainModels();
+            TrainModels(authors);
         }
 
         public class Tokenizer : ITokenizer
