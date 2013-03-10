@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PosTagsModel.cs" />
     <Compile Include="ModelBase.cs" />
     <Compile Include="CharNGramsModel.cs">
       <SubType>Code</SubType>

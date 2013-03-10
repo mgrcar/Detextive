@@ -51,9 +51,18 @@ namespace Detextive
             }
         }
 
-        public static WordWeightType GetWeightTypeConfig(string keyName)
+        public WordWeightType GetWeightTypeConfig()
         {
-            return Utils.GetConfigValue(keyName, "").ToLower() == "tfidf" ? WordWeightType.TfIdf : WordWeightType.TermFreq;
+            return Utils.GetConfigValue("WeightType_" + mSelector, "").ToLower() == "tfidf" ? WordWeightType.TfIdf : WordWeightType.TermFreq;
+        }
+
+        public SparseVector<double> TransformVector(SparseVector<double> vec)
+        {
+            if (Utils.GetConfigValue("WeightType_" + mSelector, "").ToLower() == "logrel")
+            {
+            
+            }
+            return vec;
         }
     }
 }

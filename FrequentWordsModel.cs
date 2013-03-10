@@ -12,13 +12,13 @@ namespace Detextive
     {
         public FrequentWordsModel()
         {
+            mSelector = "frw";
             mBowSpace.CutLowWeightsPerc = 0;
             mBowSpace.MaxNGramLen = 1;
             mBowSpace.MinWordFreq = 1;
             mBowSpace.NormalizeVectors = true;
             mBowSpace.Stemmer = null;
-            mBowSpace.WordWeightType = GetWeightTypeConfig("FrequentWordsWeightType");
-            mSelector = "frw";
+            mBowSpace.WordWeightType = GetWeightTypeConfig();            
         }
 
         public void Initialize(IEnumerable<Author> authors)
@@ -48,7 +48,7 @@ namespace Detextive
             int i = 0;
             foreach (Text text in texts) 
             { 
-                text.mFeatureVectors.Add(mSelector, bows[i++]);
+                text.mFeatureVectors.Add(mSelector, TransformVector(bows[i++]));
             }
             TrainModels(authors);
         }

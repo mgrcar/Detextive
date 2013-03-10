@@ -116,7 +116,7 @@ namespace Detextive
             MultiSet<string> lemmas = new MultiSet<string>();
             logger.Info("Main", "Nalagam podatke ...");
             Dictionary<string, Author> authors = new Dictionary<string, Author>();
-            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories();//.Take(3).ToArray();
+            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories().Take(3).ToArray();
             foreach (DirectoryInfo authorDir in authorDirs)
             {
                 string authorName = authorDir.Name;
@@ -159,14 +159,17 @@ namespace Detextive
             frl.Initialize(authors.Values);
             CharNGramsModel cng = new CharNGramsModel();
             cng.Initialize(authors.Values);
+            PosTagsModel pos = new PosTagsModel();
+            pos.Initialize(authors.Values);
             foreach (Author author in authors.Values)
             {
-                author.ComputeFeatures();
+                author.ComputeFeatures(); // TODO: join these two methods
                 author.ComputeCentroids();
                 author.mPredictions.Add("fuw", fuw.mModels[author.mName].Predict(author.mFeatureVectors["fuw"]));
                 author.mPredictions.Add("frw", frw.mModels[author.mName].Predict(author.mFeatureVectors["frw"]));
                 author.mPredictions.Add("frl", frl.mModels[author.mName].Predict(author.mFeatureVectors["frl"]));
                 author.mPredictions.Add("cng", cng.mModels[author.mName].Predict(author.mFeatureVectors["cng"]));
+                author.mPredictions.Add("pos", pos.mModels[author.mName].Predict(author.mFeatureVectors["pos"]));
             }
             // write results
             logger.Info("Main", "Pišem rezultate ...");
@@ -434,10 +437,10 @@ namespace Detextive
                     wAuthorCmp.WriteLine("<h3>Vektorji značilk</h3>");
                     wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
                     wAuthorCmp.WriteLine("<thead>");
-                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>FB</th><th>PB</th><th>PL</th><th>ZZ</th></tr>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>FB</th><th>PB</th><th>PL</th><th>ZZ</th><th>Ozn.</th></tr>");
                     wAuthorCmp.WriteLine("</thead>");
                     wAuthorCmp.WriteLine("<tbody>");
-                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "fuw,frw,frl,cng".Split(','));
+                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "fuw,frw,frl,cng,pos".Split(','));
                     wAuthorCmp.WriteLine("</tbody>");
                     wAuthorCmp.WriteLine("</table>");
                     WriteFooter(wAuthorCmp);
