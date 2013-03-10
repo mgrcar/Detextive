@@ -56,11 +56,22 @@ namespace Detextive
             return Utils.GetConfigValue("WeightType_" + mSelector, "").ToLower() == "tfidf" ? WordWeightType.TfIdf : WordWeightType.TermFreq;
         }
 
-        public SparseVector<double> TransformVector(SparseVector<double> vec)
+        public SparseVector<double> TransformVector(SparseVector<double> vec) // apply log-relative weighting
         {
             if (Utils.GetConfigValue("WeightType_" + mSelector, "").ToLower() == "logrel")
             {
-            
+                double sum = vec.Sum(x => x.Dat);
+                if (sum > 0)
+                {
+                    SparseVector<double> newVec = new SparseVector<double>(vec.Count);
+                    foreach (IdxDat<double> item in vec) 
+                    { 
+                        newVec.InnerIdx.Add(item.Idx); 
+                        newVec.InnerDat.Add(Math.Log(1.0 + item.Dat / sum)); 
+                    }
+                    ModelUtils.NrmVecL2(newVec);
+                    vec = newVec;
+                }
             }
             return vec;
         }

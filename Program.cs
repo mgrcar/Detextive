@@ -116,7 +116,7 @@ namespace Detextive
             MultiSet<string> lemmas = new MultiSet<string>();
             logger.Info("Main", "Nalagam podatke ...");
             Dictionary<string, Author> authors = new Dictionary<string, Author>();
-            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories().Take(3).ToArray();
+            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories();//.Take(3).ToArray();
             foreach (DirectoryInfo authorDir in authorDirs)
             {
                 string authorName = authorDir.Name;
@@ -301,6 +301,23 @@ namespace Detextive
                             wDoc.WriteLine("</tbody>");
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("</div>");
+
+                            wDoc.WriteLine("<h2>Oblikoslovne oznake</h2>");
+                            wDoc.WriteLine("<p><a href='javascript:void(0)' data-toggle='collapse' data-target='#pos'>Seznam oblikoslovnih oznak</a></p>");
+                            wDoc.WriteLine("<div id='pos' class='collapse'>");
+                            wDoc.WriteLine("<table class='table table-bordered table-striped'>");
+                            wDoc.WriteLine("<thead>");
+                            wDoc.WriteLine("<tr><th>Zap. št.</th><th>Zaporedje</th><th>Utež</th></tr>");
+                            wDoc.WriteLine("</thead>");
+                            wDoc.WriteLine("<tbody>");
+                            i = 0;
+                            foreach (KeyDat<double, Word> wordInfo in pos.mBowSpace.GetKeywords(text.mFeatureVectors["pos"]).Take(TOP_ITEMS_COUNT))
+                            {
+                                wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat.Stem), wordInfo.Key);
+                            }
+                            wDoc.WriteLine("</tbody>");
+                            wDoc.WriteLine("</table>");
+                            wDoc.WriteLine("</div>");
                                                         
                             WriteFooter(wDoc);
                         }
@@ -396,6 +413,23 @@ namespace Detextive
                     wIdx.WriteLine("<tbody>");
                     j = 0;
                     foreach (Pair<string, double> word in author.GetTopVectorItems("cng", TOP_ITEMS_COUNT, cng.mBowSpace))
+                    {
+                        wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
+                    }
+                    wIdx.WriteLine("</tbody>");
+                    wIdx.WriteLine("</table>");
+                    wIdx.WriteLine("</table>");
+                    wIdx.WriteLine("</div>");
+                    wIdx.WriteLine("<h4>Oblikoslovne oznake</h4>");
+                    wIdx.WriteLine("<p><a href='javascript:void(0)' data-toggle='collapse' data-target='#pos_{0}'>Seznam oblikoslovnih oznak</a></p>", authorNum);
+                    wIdx.WriteLine("<div id='pos_{0}' class='collapse'>", authorNum);
+                    wIdx.WriteLine("<table class='table table-bordered table-striped'>");
+                    wIdx.WriteLine("<thead>");
+                    wIdx.WriteLine("<tr><th>Zap. št.</th><th>Zaporedje</th><th>Utež</th></tr>");
+                    wIdx.WriteLine("</thead>");
+                    wIdx.WriteLine("<tbody>");
+                    j = 0;
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("pos", TOP_ITEMS_COUNT, pos.mBowSpace))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
