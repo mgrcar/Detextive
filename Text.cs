@@ -58,6 +58,15 @@ namespace Detextive
                     AddFeatureVal(feature.Key, feature.Value);
                 }
             }
+            foreach (string fvName in mTexts[0].mFeatureVectors.Keys)
+            {
+                ArrayList<SparseVector<double>> tmp = new ArrayList<SparseVector<double>>();
+                foreach (Text text in mTexts)
+                {
+                    tmp.Add(text.mFeatureVectors[fvName]);
+                }
+                mFeatureVectors.Add(fvName, ModelUtils.ComputeCentroid(tmp, CentroidType.NrmL2));
+            }
         }
 
         public void AddFeatureVal(string featureName, double val)
@@ -70,19 +79,6 @@ namespace Detextive
             else
             {
                 values.Add(val);
-            }
-        }
-
-        public void ComputeCentroids()
-        {            
-            foreach (string fvName in mTexts[0].mFeatureVectors.Keys)
-            {
-                ArrayList<SparseVector<double>> tmp = new ArrayList<SparseVector<double>>();
-                foreach (Text text in mTexts)
-                {
-                    tmp.Add(text.mFeatureVectors[fvName]);
-                }
-                mFeatureVectors.Add(fvName, ModelUtils.ComputeCentroid(tmp, CentroidType.NrmL2)); 
             }
         }
 

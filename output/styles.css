@@ -1,8 +1,7 @@
-body { background-color: lightgray; margin: 0; }
-.inner { width: 900px; margin-left: auto; margin-right: auto; background-color: white; padding: 25px; }
+body { background-color: #eee; } 
 .token { display: inline-block; border: 1px solid silver; border-radius: 2px; }
+.container { background-color: white; padding: 30px; }
 .sentence { display: block; margin-bottom: 15px; }
-.para { border: 1px solid green; }
 .table { width: auto; }
 .alert { margin: 0; }
 .back { text-align: right; }

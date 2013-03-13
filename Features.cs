@@ -91,5 +91,42 @@ namespace Detextive
             // Brunet's index: W = N^(V^-0.165)
             brunet = Math.Pow(n, Math.Pow(v, -0.165));
         }
+
+        public static void GetFeatureRanking(Author author, ArrayList<Author> otherAuthors, string feature)
+        {
+            ArrayList<double> diffsAuthor = new ArrayList<double>();
+            ArrayList<double> diffsOthers = new ArrayList<double>();
+            for (int i = 0; i < otherAuthors.Count; i++)
+            {
+                for (int j = i + 1; j < otherAuthors.Count; j++)
+                {
+                    Author a = otherAuthors[i];
+                    Author oa = otherAuthors[j];
+                    if (!a.mIsTagged && !oa.mIsTagged)
+                    {
+                        foreach (double aVal in a.mFeatures[feature])
+                        {
+                            foreach (double oaVal in oa.mFeatures[feature])
+                            {
+                                if (a != author && oa != author)
+                                {
+                                    diffsOthers.Add(Math.Abs(aVal - oaVal));
+                                }
+                                else
+                                {
+                                    diffsAuthor.Add(Math.Abs(aVal - oaVal));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            foreach (double diffAuthor in diffsAuthor)
+            { 
+                // *** this could be optimized (sorted array, bisection)
+                double p = (double)diffsOthers.Count(x => x <= diffAuthor) / (double)diffsOthers.Count();
+                author.AddFeatureVal("p_" + feature, p);
+            }
+        }
     }
 }
