@@ -1,0 +1,10 @@
+body { background-color: #eee; } 
+.token { display: inline-block; border: 1px solid silver; border-radius: 2px; }
+.container { background-color: white; padding: 30px; }
+.sentence { display: block; margin-bottom: 15px; }
+.table { width: auto; }
+.alert { margin: 0; }
+.back { text-align: right; }
+.tablesorter .header { cursor: hand; cursor: pointer; padding-right: 20px; background: url("sort_both.png") no-repeat scroll right center transparent; }
+.tablesorter .headerSortUp { background: url("sort_asc.png") no-repeat scroll right center transparent; }
+.tablesorter .headerSortDown { background: url("sort_desc.png") no-repeat scroll right center transparent; }
