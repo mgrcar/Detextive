@@ -30,7 +30,7 @@ namespace Detextive
                         }
                     }
                 }
-                SvmMulticlassFast<string> model = new SvmMulticlassFast<string>();
+                SvmMulticlassClassifier<string> model = new SvmMulticlassClassifier<string>();
                 model.C = Convert.ToDouble(Utils.GetConfigValue("SvmMultiClassC", "5000"));
                 model.Train(ds);
                 mModels.Add(author.mName, model);
