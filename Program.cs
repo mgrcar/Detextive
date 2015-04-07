@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Web;
 using Latino;
 using PosTagger;
-using System.Web;
 
 namespace Detextive
 {
@@ -49,8 +49,20 @@ namespace Detextive
 </div>
 <script src='jquery.js'></script>
 <script src='bootstrap.min.js'></script>
+<script src='jquery.tablesorter.min.js'></script>
 <script type='text/javascript'>
 $('.token').tooltip({ html: true });
+$.tablesorter.addParser({ 
+    id: 'rndVar', 
+    is: function(s) { 
+        return s.indexOf('±') != -1; 
+    }, 
+    format: function(s) { 
+        return s.substring(0, s.indexOf('±') - 1);
+    }, 
+    type: 'numeric' 
+}); 
+$('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
 </script>
 </body>
 </html>");
@@ -63,7 +75,7 @@ $('.token').tooltip({ html: true });
 
         static void WriteFeature(StreamWriter w, string name, double val, double stdDev)
         {
-            w.WriteLine("<tr><td>{0}</td><td>{1:0.00}</td><td>±{2:0.00}</td></tr>", HttpUtility.HtmlEncode(name), val, stdDev);
+            w.WriteLine("<tr><td>{0}</td><td>{1:0.00}</td><td>±&nbsp;{2:0.00}</td></tr>", HttpUtility.HtmlEncode(name), val, stdDev);
         }
 
         static void CountTokens(Text text, MultiSet<string> tokens, MultiSet<string> lemmas)
@@ -94,6 +106,26 @@ $('.token').tooltip({ html: true });
             return ret;
         }
 
+        private static void WriteAuthorCompareTable(StreamWriter writer, IEnumerable<Author> authors, Author author, IEnumerable<string> featureNames)
+        {
+            foreach (Author otherAuthor in authors)
+            {
+                if (author != otherAuthor)
+                {
+                    Dictionary<string, double> diff, stdDev;
+                    author.ComputeDistance(otherAuthor, out diff, out stdDev, featureNames);
+                    writer.WriteLine("<tr>");
+                    writer.WriteLine("<td>{0}</td>", otherAuthor.mName);
+                    foreach (KeyValuePair<string, double> item in diff)
+                    {
+                        if (stdDev.ContainsKey(item.Key)) { writer.WriteLine("<td>{0:0.00}&nbsp;±&nbsp;{1:0.00}</td>", item.Value, stdDev[item.Key]); }
+                        else { writer.WriteLine("<td>{0:0.00}</td>", item.Value); }
+                    }
+                    writer.WriteLine("</tr>");
+                }
+            }
+        }
+
         static void Main(string[] args)
         {
             // setup logger
@@ -113,7 +145,7 @@ $('.token').tooltip({ html: true });
             MultiSet<string> lemmas = new MultiSet<string>();
             logger.Info("Main", "Nalagam podatke ...");
             Dictionary<string, Author> authors = new Dictionary<string, Author>();
-            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories().Take(2).ToArray();
+            DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories();//.Take(3).ToArray();
             foreach (DirectoryInfo authorDir in authorDirs)
             {
                 logger.Info("Main", "Obravnavam avtorja \"" + authorDir.Name + "\" ...");
@@ -258,6 +290,7 @@ $('.token').tooltip({ html: true });
                             WriteFooter(wDoc);
                         }
                     }
+                    author.NormalizeFeatureVectors();
                     wIdx.WriteLine("</ul>");
                     wIdx.WriteLine("<h3>Značilke</h3>");
                     wIdx.WriteLine("<h4>Obseg besedišča</h4>");
@@ -285,7 +318,7 @@ $('.token').tooltip({ html: true });
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     int j = 0;
-                    foreach (Pair<string, double> word in author.GetTopItems("fuw", int.MaxValue))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("fuw", int.MaxValue))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
@@ -297,7 +330,7 @@ $('.token').tooltip({ html: true });
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     j = 0;
-                    foreach (Pair<string, double> word in author.GetTopItems("frw", int.MaxValue))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("frw", int.MaxValue))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
@@ -309,29 +342,57 @@ $('.token').tooltip({ html: true });
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     j = 0;
-                    foreach (Pair<string, double> word in author.GetTopItems("frl", int.MaxValue))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("frl", int.MaxValue))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
                     wIdx.WriteLine("</table>");
                     wIdx.WriteLine("</div>");
                     wIdx.WriteLine("<h3>Primerjava</h3>");
-                    string authorCompareFileName = OUTPUT_PATH + "\\compare_" + authorNum + ".html";
-                    wIdx.WriteLine("<a href='{0}'>Primerjaj z ostalimi avtorji »</a>", new FileInfo(authorCompareFileName).Name);
-                    // write author-compare page
-                    using (StreamWriter wAuthorCmp = new StreamWriter(authorCompareFileName, /*append=*/false, Encoding.UTF8))
-                    {
-                        WriteHeader(wAuthorCmp);
-                        wAuthorCmp.WriteLine("<div class='back'><a href='index.html'>« Seznam avtorjev</a></div>");
-                        wAuthorCmp.WriteLine("<h1>Primerjava</h1>");
-                        wAuthorCmp.WriteLine("<h2>Avtor: {0}</h2>", HttpUtility.HtmlEncode(item.Key));
-                        wAuthorCmp.WriteLine("<table class='table table-bordered table-striped'>");
-                        // ...
-                        wAuthorCmp.WriteLine("</table>");
-                        WriteFooter(wAuthorCmp);
-                    }
+                    wIdx.WriteLine("<a href='{0}'>Primerjaj z ostalimi avtorji »</a>", "compare_" + authorNum + ".html");                   
                 }
-                WriteFooter(wIdx);
+                WriteFooter(wIdx);  
+            }
+            // write author-compare pages
+            int n = 0;
+            foreach (Author author in authors.Values)
+            {
+                string authorCompareFileName = OUTPUT_PATH + "\\compare_" + ++n + ".html";
+                using (StreamWriter wAuthorCmp = new StreamWriter(authorCompareFileName, /*append=*/false, Encoding.UTF8))
+                {
+                    WriteHeader(wAuthorCmp);
+                    wAuthorCmp.WriteLine("<div class='back'><a href='index.html'>« Seznam avtorjev</a></div>");
+                    wAuthorCmp.WriteLine("<h1>Primerjava</h1>");
+                    wAuthorCmp.WriteLine("<h2>Avtor: {0}</h2>", HttpUtility.HtmlEncode(author.mName));
+                    wAuthorCmp.WriteLine("<h3>Obseg besedišča</h3>");
+                    wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
+                    wAuthorCmp.WriteLine("<thead>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>TTR</th><th>BI</th><th>HS</th><th>HL</th></tr>");
+                    wAuthorCmp.WriteLine("</thead>");
+                    wAuthorCmp.WriteLine("<tbody>");
+                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "ttr,brunet,honore,hl".Split(','));
+                    wAuthorCmp.WriteLine("</tbody>");
+                    wAuthorCmp.WriteLine("</table>");
+                    wAuthorCmp.WriteLine("<h3>Berljivost</h3>");
+                    wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
+                    wAuthorCmp.WriteLine("<thead>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>B/P</th><th>Zn/B</th><th>Zl/B</th><th>KB</th><th>ARI</th><th>Flesch</th><th>Fog</th></tr>");
+                    wAuthorCmp.WriteLine("</thead>");
+                    wAuthorCmp.WriteLine("<tbody>");
+                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "rWords,rChars,rSyllables,rComplex,ari,flesch,fog".Split(','));
+                    wAuthorCmp.WriteLine("</tbody>");
+                    wAuthorCmp.WriteLine("</table>");
+                    wAuthorCmp.WriteLine("<h3>Vektorji značilk</h3>");
+                    wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
+                    wAuthorCmp.WriteLine("<thead>");
+                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>FB</th><th>PB</th><th>PL</th></tr>");
+                    wAuthorCmp.WriteLine("</thead>");
+                    wAuthorCmp.WriteLine("<tbody>");
+                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "fuw,frw,frl".Split(','));
+                    wAuthorCmp.WriteLine("</tbody>");
+                    wAuthorCmp.WriteLine("</table>");
+                    WriteFooter(wAuthorCmp);
+                }
             }
         }
     }

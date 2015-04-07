@@ -96,7 +96,7 @@ namespace Detextive
             return sparseVec;
         }
 
-        public Pair<string, double>[] GetTopItems(string vectorName, int n)
+        public Pair<string, double>[] GetTopVectorItems(string vectorName, int n)
         { 
             SparseVector<double> vec = mFeatureVectors[vectorName];
             FeatureMapping mapping = mFeatureMappings[vectorName];
@@ -139,7 +139,30 @@ namespace Detextive
             return mFeatures[featureName].StdDev();
         }
 
-        // http://stattrek.com/random-variable/combination.aspx
+        public void ComputeDistance(Author otherAuthor, out Dictionary<string, double> diff, out Dictionary<string, double> stdDev, IEnumerable<string> featureNames)
+        {
+            diff = new Dictionary<string, double>();
+            stdDev = new Dictionary<string, double>();
+            foreach (string featureName in featureNames)
+            {
+                if (mFeatures.ContainsKey(featureName))
+                {
+                    double avg = GetAvg(featureName);
+                    double var = Math.Pow(GetStdDev(featureName), 2);
+                    double otherAvg = otherAuthor.GetAvg(featureName);
+                    double otherVar = Math.Pow(otherAuthor.GetStdDev(featureName), 2);
+                    diff.Add(featureName, Math.Abs(avg - otherAvg));
+                    stdDev.Add(featureName, Math.Sqrt(var + otherVar)); // http://stattrek.com/random-variable/combination.aspx
+                }
+                else
+                {
+                    SparseVector<double> vec = mFeatureVectors[featureName];
+                    SparseVector<double> otherVec = otherAuthor.mFeatureVectors[featureName];
+                    double cosSim = CosineSimilarity.Instance.GetSimilarity(vec, otherVec);
+                    diff.Add(featureName, 1.0 - cosSim);                
+                }
+            }
+        }
     }
 
     public class Text

@@ -1,7 +1,10 @@
 body { background-color: lightgray; margin: 0; }
-div.inner { width: 800px; margin-left: auto; margin-right: auto; background-color: white; padding: 25px; }
-span.token { display: inline-block; border: 1px solid silver; border-radius: 2px; }
-span.sentence { display: block; margin-bottom: 15px; }
-div.para { border: 1px solid green; }
+.inner { width: 800px; margin-left: auto; margin-right: auto; background-color: white; padding: 25px; }
+.token { display: inline-block; border: 1px solid silver; border-radius: 2px; }
+.sentence { display: block; margin-bottom: 15px; }
+.para { border: 1px solid green; }
 .table { width: auto; }
 .back { text-align: right; }
+.tablesorter .header { padding-right: 20px; background: url("sort_both.png") no-repeat scroll right center transparent; }
+.tablesorter .headerSortUp { background: url("sort_asc.png") no-repeat scroll right center transparent; }
+.tablesorter .headerSortDown { background: url("sort_desc.png") no-repeat scroll right center transparent; }
