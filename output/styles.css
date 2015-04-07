@@ -3,7 +3,8 @@ body { background-color: lightgray; margin: 0; }
 .token { display: inline-block; border: 1px solid silver; border-radius: 2px; }
 .sentence { display: block; margin-bottom: 15px; }
 .para { border: 1px solid green; }
-.table { width: auto; }
+.table { width: auto; margin-bottom: 15px; }
+.alert { margin: 0; }
 .back { text-align: right; }
 .tablesorter .header { cursor: hand; cursor: pointer; padding-right: 20px; background: url("sort_both.png") no-repeat scroll right center transparent; }
 .tablesorter .headerSortUp { background: url("sort_asc.png") no-repeat scroll right center transparent; }

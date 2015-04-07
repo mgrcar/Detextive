@@ -41,7 +41,7 @@ namespace Detextive
             private ArrayList<string> mTokens
                 = new ArrayList<string>();
             private int MAX_NGRAM_LEN
-                = Convert.ToInt32(Utils.GetConfigValue("CharNGramsMaxN", "3"));
+                = Convert.ToInt32(Utils.GetConfigValue("CharNGramsMaxLen", "3"));
 
             public Tokenizer(Text text)
             {

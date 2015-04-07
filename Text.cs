@@ -38,10 +38,8 @@ namespace Detextive
             = new Dictionary<string, SparseVector<double>>();
         public Dictionary<string, Prediction<string>> mPredictions
             = new Dictionary<string, Prediction<string>>();
-        public bool mIsTestAuthor
+        public bool mIsTaggedAuthor
             = false;
-        public int TOP_ITEMS_COUNT
-            = Convert.ToInt32(Utils.GetConfigValue("VectorItemsListSize", "100"));
 
         public Author(string name)
         {
@@ -86,12 +84,12 @@ namespace Detextive
             }
         }
 
-        public Pair<string, double>[] GetTopVectorItems(string vectorName, BowSpace bowSpc)
+        public Pair<string, double>[] GetTopVectorItems(string vectorName, int n, BowSpace bowSpc)
         {
             SparseVector<double> vec = mFeatureVectors[vectorName];
             return vec
                 .OrderByDescending(x => x.Dat)
-                .Take(TOP_ITEMS_COUNT)
+                .Take(n)
                 .Select(x => new Pair<string, double>(bowSpc.Words[x.Idx].Stem, x.Dat))
                 .ToArray();
         }
@@ -141,8 +139,6 @@ namespace Detextive
             = new Dictionary<string, double>();
         public Dictionary<string, SparseVector<double>> mFeatureVectors
             = new Dictionary<string, SparseVector<double>>();
-        public bool mIsTestText
-            = false;
         public string mHtmlFileName
             = Guid.NewGuid().ToString("N") + ".html";
 
