@@ -1,0 +1,7 @@
+bin/
+obj/
+_not_under_git_/
+*.suo
+*.bak
+*.user
+*.bin
