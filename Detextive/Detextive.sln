@@ -1,15 +1,15 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Detextive", "Detextive.csproj", "{57251AB4-308D-400C-9C72-7F2E9018951A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Latino", "..\Latino\Latino.csproj", "{A8141B84-894F-4007-8C21-91D4152213C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PosTagger", "..\Obeliks\PosTagger\PosTagger.csproj", "{915DA0E9-1BA2-4BBF-87AC-734D49B1EBFC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PosTagger", "..\Obeliks\Obeliks\PosTagger\PosTagger.csproj", "{915DA0E9-1BA2-4BBF-87AC-734D49B1EBFC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LemmaSharp", "..\Obeliks\LemmaSharp\LemmaSharp.csproj", "{3283E6ED-0B50-4505-A268-4C47E8324DC8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LemmaSharp", "..\Obeliks\Obeliks\LemmaSharp\LemmaSharp.csproj", "{3283E6ED-0B50-4505-A268-4C47E8324DC8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PosTaggerTagLib", "..\Obeliks\PosTaggerTag\PosTaggerTagLib.csproj", "{2C0EE01C-EB5C-43B8-AD23-9FB6E9C14134}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PosTaggerTagLib", "..\Obeliks\Obeliks\PosTaggerTag\PosTaggerTagLib.csproj", "{2C0EE01C-EB5C-43B8-AD23-9FB6E9C14134}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LatinoLite", "..\LATINO\LatinoLite.csproj", "{5B86AAD5-3FEA-487C-A518-4F846AF09E18}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,10 +21,6 @@ Global
 		{57251AB4-308D-400C-9C72-7F2E9018951A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57251AB4-308D-400C-9C72-7F2E9018951A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57251AB4-308D-400C-9C72-7F2E9018951A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A8141B84-894F-4007-8C21-91D4152213C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A8141B84-894F-4007-8C21-91D4152213C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A8141B84-894F-4007-8C21-91D4152213C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A8141B84-894F-4007-8C21-91D4152213C3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{915DA0E9-1BA2-4BBF-87AC-734D49B1EBFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{915DA0E9-1BA2-4BBF-87AC-734D49B1EBFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{915DA0E9-1BA2-4BBF-87AC-734D49B1EBFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -37,6 +33,10 @@ Global
 		{2C0EE01C-EB5C-43B8-AD23-9FB6E9C14134}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C0EE01C-EB5C-43B8-AD23-9FB6E9C14134}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C0EE01C-EB5C-43B8-AD23-9FB6E9C14134}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B86AAD5-3FEA-487C-A518-4F846AF09E18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B86AAD5-3FEA-487C-A518-4F846AF09E18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B86AAD5-3FEA-487C-A518-4F846AF09E18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B86AAD5-3FEA-487C-A518-4F846AF09E18}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
