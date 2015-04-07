@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Latino;
 using PosTagger;
+using Latino.TextMining;
+using Latino.Model;
 
 namespace Detextive
 {
@@ -50,20 +52,7 @@ namespace Detextive
 <script src='jquery.js'></script>
 <script src='bootstrap.min.js'></script>
 <script src='jquery.tablesorter.min.js'></script>
-<script type='text/javascript'>
-$('.token').tooltip({ html: true });
-$.tablesorter.addParser({ 
-    id: 'rndVar', 
-    is: function(s) { 
-        return s.indexOf('±') != -1; 
-    }, 
-    format: function(s) { 
-        return s.substring(0, s.indexOf('±') - 1);
-    }, 
-    type: 'numeric' 
-}); 
-$('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
-</script>
+<script src='code.js'></script>
 </body>
 </html>");
         }
@@ -148,7 +137,14 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
             DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories();//.Take(3).ToArray();
             foreach (DirectoryInfo authorDir in authorDirs)
             {
-                logger.Info("Main", "Obravnavam avtorja \"" + authorDir.Name + "\" ...");
+                string authorName = authorDir.Name;
+                bool isTestAuthor = false;
+                if (authorName.EndsWith(".test", StringComparison.OrdinalIgnoreCase)) 
+                {
+                    authorName = authorName.Substring(0, authorName.Length - 5);
+                    isTestAuthor = true;
+                }
+                logger.Info("Main", "Obravnavam avtorja \"" + authorName + "\" ...");
                 FileInfo[] authorFiles = authorDir.GetFiles("*.txt");
                 foreach (FileInfo authorFile in authorFiles)
                 {
@@ -160,30 +156,33 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     Corpus corpus = new Corpus();
                     corpus.LoadFromTextSsjTokenizer(txt);
                     posTagger.Tag(corpus);
-                    Text text = new Text(corpus, title, authorDir.Name);
+                    Text text = new Text(corpus, title, authorName);
+                    text.mIsTestText = isTestAuthor;
                     CountTokens(text, tokens, lemmas);
-                    Author tmp;
-                    if (!authors.TryGetValue(text.mAuthor, out tmp))
+                    Author author;
+                    if (!authors.TryGetValue(text.mAuthor, out author))
                     {
-                        Author author = new Author(text.mAuthor);
+                        author = new Author(text.mAuthor);
+                        author.mIsTestAuthor = isTestAuthor;
                         author.mTexts.Add(text);
                         authors.Add(text.mAuthor, author);                        
                     }
-                    else { tmp.mTexts.Add(text); }
+                    else { author.mTexts.Add(text); }
                 }
             }
-            // get top tokens
-            Set<string> topTokens = new Set<string>(
-                tokens.ToList()
-                .OrderByDescending(x => x.Key)
-                .Take(NUM_TOP_TOKENS)
-                .Select(x => x.Dat));
-            // get top lemmas
-            Set<string> topLemmas = new Set<string>(
-                lemmas.ToList()
-                .OrderByDescending(x => x.Key)
-                .Take(NUM_TOP_LEMMAS)
-                .Select(x => x.Dat));
+            ArrayList<Text> texts = new ArrayList<Text>();
+            foreach (Author author in authors.Values)
+            {
+                author.ComputeFeatures();
+                texts.AddRange(author.mTexts);
+            }
+            FunctionWords.Initialize(texts);
+            FrequentWords.Initialize(texts);
+            FrequentLemmas.Initialize(texts);
+            foreach (Author author in authors.Values)
+            {
+                author.ComputeCentroids();
+            }
             // write results
             logger.Info("Main", "Pišem rezultate ...");
             using (StreamWriter wIdx = new StreamWriter(OUTPUT_PATH + "\\index.html", /*append=*/false, Encoding.UTF8))
@@ -196,6 +195,14 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     authorNum++;
                     Author author = item.Value;
                     wIdx.WriteLine("<h2>Avtor: {0}</h2>", HttpUtility.HtmlEncode(item.Key));
+                    if (author.mIsTestAuthor)
+                    {
+                        wIdx.WriteLine("<div class='alert alert-info'><strong>Neznani avtor.</strong> <a href='{0}'>Primerjaj z ostalimi avtorji »</a></div>", "compare_" + authorNum + ".html");
+                    }
+                    else
+                    {
+                        wIdx.WriteLine("<a href='{0}'>Primerjaj z ostalimi avtorji »</a>", "compare_" + authorNum + ".html"); 
+                    }
                     wIdx.WriteLine("<h3>Besedila</h3>");
                     wIdx.WriteLine("<ul>");
                     foreach (Text text in item.Value.mTexts)
@@ -203,28 +210,6 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                         wIdx.WriteLine("<li><a href='{1}'>{0} »</a></li>", HttpUtility.HtmlEncode(text.mName), text.mHtmlFileName);
                         using (StreamWriter wDoc = new StreamWriter(OUTPUT_PATH + "\\" + text.mHtmlFileName, /*append=*/false, Encoding.UTF8))
                         {
-                            // compute features
-                            double ttr, hl, honore, brunet;
-                            Features.GetVocabularyRichness(text, out ttr, out hl, out honore, out brunet);
-                            double ari, flesch, fog, rWords, rChars, rSyllables, rComplex;
-                            Features.GetReadabilityFeatures(text, out ari, out flesch, out fog, out rWords, out rChars, out rSyllables, out rComplex);
-                            ArrayList<KeyDat<int, string>> functionWords = Features.GetFunctionWordsVector(text);
-                            ArrayList<KeyDat<int, string>> frequentWords = Features.GetFrequentWordsVector(text, topTokens, /*lemmas=*/false);
-                            ArrayList<KeyDat<int, string>> frequentLemmas = Features.GetFrequentWordsVector(text, topLemmas, /*lemmas=*/true);
-                            author.AddFeatureVal("ttr", ttr);
-                            author.AddFeatureVal("brunet", brunet);
-                            author.AddFeatureVal("honore", honore);
-                            author.AddFeatureVal("hl", hl);
-                            author.AddFeatureVal("ari", ari);
-                            author.AddFeatureVal("flesch", flesch);
-                            author.AddFeatureVal("fog", fog);
-                            author.AddFeatureVal("rWords", rWords);
-                            author.AddFeatureVal("rChars", rChars);
-                            author.AddFeatureVal("rSyllables", rSyllables);
-                            author.AddFeatureVal("rComplex", rComplex);
-                            author.AddFeatureVector("fuw", functionWords);
-                            author.AddFeatureVector("frw", frequentWords);
-                            author.AddFeatureVector("frl", frequentLemmas);
                             // write document HTML
                             WriteHeader(wDoc);
                             wDoc.WriteLine("<div class='back'><a href='index.html'>« Seznam avtorjev</a></div>");
@@ -234,32 +219,36 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                             wDoc.WriteLine("<h1>Značilke</h1>");
                             wDoc.WriteLine("<h2>Obseg besedišča</h2>");
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
+                            wDoc.WriteLine("<thead>");
                             wDoc.WriteLine("<tr><th>Značilka</th><th>Vrednost</th></tr>");
-                            WriteFeature(wDoc, "Delež različnih besed", ttr);
-                            WriteFeature(wDoc, "Brunetov indeks", brunet);
-                            WriteFeature(wDoc, "Honorejeva statistika", honore);
-                            WriteFeature(wDoc, "Hapax legomena", hl);
+                            wDoc.WriteLine("</thead>");
+                            wDoc.WriteLine("<tbody>");
+                            WriteFeature(wDoc, "Delež različnih besed", text.mFeatures["ttr"]);
+                            WriteFeature(wDoc, "Brunetov indeks", text.mFeatures["brunet"]);
+                            WriteFeature(wDoc, "Honorejeva statistika", text.mFeatures["honore"]);
+                            WriteFeature(wDoc, "Hapax legomena", text.mFeatures["hl"]);
+                            wDoc.WriteLine("</tbody>");
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("<h2>Berljivost</h2>");
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
                             wDoc.WriteLine("<tr><th>Značilka</th><th>Vrednost</th></tr>");
-                            WriteFeature(wDoc, "Razmerje med št. besed in št. povedi", rWords);
-                            WriteFeature(wDoc, "Razmerje med št. znakov in št. besed", rChars);
-                            WriteFeature(wDoc, "Razmerje med št. zlogov in št. besed", rSyllables);
-                            WriteFeature(wDoc, "Delež kompleksnih besed", rComplex);
-                            WriteFeature(wDoc, "ARI", ari);
-                            WriteFeature(wDoc, "Flesch", flesch);
-                            WriteFeature(wDoc, "Fog", fog);
+                            WriteFeature(wDoc, "Razmerje med št. besed in št. povedi", text.mFeatures["rWords"]);
+                            WriteFeature(wDoc, "Razmerje med št. znakov in št. besed", text.mFeatures["rChars"]);
+                            WriteFeature(wDoc, "Razmerje med št. zlogov in št. besed", text.mFeatures["rSyllables"]);
+                            WriteFeature(wDoc, "Delež kompleksnih besed", text.mFeatures["rComplex"]);
+                            WriteFeature(wDoc, "ARI", text.mFeatures["ari"]);
+                            WriteFeature(wDoc, "Flesch", text.mFeatures["flesch"]);
+                            WriteFeature(wDoc, "Fog", text.mFeatures["fog"]);
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("<h2>Funkcijske besede</h2>");
                             wDoc.WriteLine("<a href='javascript:void(0)' data-toggle='collapse' data-target='#fuw'>Seznam funkcijskih besed</a>");
                             wDoc.WriteLine("<div id='fuw' class='collapse'>");
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
-                            wDoc.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Št. pojav.</th></tr>");
+                            wDoc.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                             int i = 0;
-                            foreach (KeyDat<int, string> wordInfo in functionWords)
+                            foreach (KeyDat<double, Word> wordInfo in FunctionWords.mBowSpace.GetKeywords(text.mFeatureVectors["fuw"]))
                             {
-                                wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat), wordInfo.Key);
+                                wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat.Stem), wordInfo.Key);
                             }
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("</div>");
@@ -267,11 +256,11 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                             wDoc.WriteLine("<a href='javascript:void(0)' data-toggle='collapse' data-target='#frw'>Seznam pogostih besed</a>");
                             wDoc.WriteLine("<div id='frw' class='collapse'>");
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
-                            wDoc.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Št. pojav.</th></tr>");
+                            wDoc.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                             i = 0;
-                            foreach (KeyDat<int, string> wordInfo in frequentWords)
+                            foreach (KeyDat<double, Word> wordInfo in FrequentWords.mBowSpace.GetKeywords(text.mFeatureVectors["frw"]))
                             {
-                                wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat), wordInfo.Key);
+                                wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat.Stem), wordInfo.Key);
                             }
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("</div>");
@@ -279,18 +268,17 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                             wDoc.WriteLine("<a href='javascript:void(0)' data-toggle='collapse' data-target='#frl'>Seznam pogostih lem</a>");
                             wDoc.WriteLine("<div id='frl' class='collapse'>");
                             wDoc.WriteLine("<table class='table table-bordered table-striped'>");
-                            wDoc.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Št. pojav.</th></tr>");
+                            wDoc.WriteLine("<tr><th>Zap. št.</th><th>Lema</th><th>Utež</th></tr>");
                             i = 0;
-                            foreach (KeyDat<int, string> wordInfo in frequentLemmas)
+                            foreach (KeyDat<double, Word> wordInfo in FrequentLemmas.mBowSpace.GetKeywords(text.mFeatureVectors["frl"]))
                             {
-                                wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat), wordInfo.Key);
+                                wDoc.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++i, HttpUtility.HtmlEncode(wordInfo.Dat.Stem), wordInfo.Key);
                             }
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("</div>");
                             WriteFooter(wDoc);
                         }
                     }
-                    author.NormalizeFeatureVectors();
                     wIdx.WriteLine("</ul>");
                     wIdx.WriteLine("<h3>Značilke</h3>");
                     wIdx.WriteLine("<h4>Obseg besedišča</h4>");
@@ -318,7 +306,7 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     int j = 0;
-                    foreach (Pair<string, double> word in author.GetTopVectorItems("fuw", int.MaxValue))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("fuw", int.MaxValue, FunctionWords.mBowSpace))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
@@ -330,7 +318,7 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     j = 0;
-                    foreach (Pair<string, double> word in author.GetTopVectorItems("frw", int.MaxValue))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("frw", int.MaxValue, FrequentWords.mBowSpace))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
@@ -342,14 +330,12 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     wIdx.WriteLine("<table class='table table-bordered table-striped'>");
                     wIdx.WriteLine("<tr><th>Zap. št.</th><th>Beseda</th><th>Utež</th></tr>");
                     j = 0;
-                    foreach (Pair<string, double> word in author.GetTopVectorItems("frl", int.MaxValue))
+                    foreach (Pair<string, double> word in author.GetTopVectorItems("frl", int.MaxValue, FrequentLemmas.mBowSpace))
                     {
                         wIdx.WriteLine("<tr><td>{0}.</td><td>{1}</td><td>{2:0.00}</td></tr>", ++j, HttpUtility.HtmlEncode(word.First), word.Second);
                     }
                     wIdx.WriteLine("</table>");
                     wIdx.WriteLine("</div>");
-                    wIdx.WriteLine("<h3>Primerjava</h3>");
-                    wIdx.WriteLine("<a href='{0}'>Primerjaj z ostalimi avtorji »</a>", "compare_" + authorNum + ".html");                   
                 }
                 WriteFooter(wIdx);  
             }
@@ -382,15 +368,15 @@ $('.tablesorter').tablesorter({ headers: { 0: { sorter: false } } });
                     WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "rWords,rChars,rSyllables,rComplex,ari,flesch,fog".Split(','));
                     wAuthorCmp.WriteLine("</tbody>");
                     wAuthorCmp.WriteLine("</table>");
-                    wAuthorCmp.WriteLine("<h3>Vektorji značilk</h3>");
-                    wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
-                    wAuthorCmp.WriteLine("<thead>");
-                    wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>FB</th><th>PB</th><th>PL</th></tr>");
-                    wAuthorCmp.WriteLine("</thead>");
-                    wAuthorCmp.WriteLine("<tbody>");
-                    WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "fuw,frw,frl".Split(','));
-                    wAuthorCmp.WriteLine("</tbody>");
-                    wAuthorCmp.WriteLine("</table>");
+                    //wAuthorCmp.WriteLine("<h3>Vektorji značilk</h3>");
+                    //wAuthorCmp.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
+                    //wAuthorCmp.WriteLine("<thead>");
+                    //wAuthorCmp.WriteLine("<tr><th>Avtor</th><th>FB</th><th>PB</th><th>PL</th></tr>");
+                    //wAuthorCmp.WriteLine("</thead>");
+                    //wAuthorCmp.WriteLine("<tbody>");
+                    //WriteAuthorCompareTable(wAuthorCmp, authors.Values, author, "fuw,frw,frl".Split(','));
+                    //wAuthorCmp.WriteLine("</tbody>");
+                    //wAuthorCmp.WriteLine("</table>");
                     WriteFooter(wAuthorCmp);
                 }
             }

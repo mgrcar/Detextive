@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Latino;
 using PosTagger;
 using Latino.Model;
+using Latino.TextMining;
 
 namespace Detextive
 {
@@ -28,30 +29,6 @@ namespace Detextive
 
     public class Author
     {
-        public class FeatureMapping
-        {
-            public Dictionary<string, int> mTokenToIdx
-                = new Dictionary<string,int>();
-            public ArrayList<string> mIdxToToken
-                = new ArrayList<string>();
-
-            public int GetIdx(string token)
-            {
-                int idx;
-                if (!mTokenToIdx.TryGetValue(token, out idx))
-                {
-                    mTokenToIdx.Add(token, idx = mTokenToIdx.Count);
-                    mIdxToToken.Add(token);
-                }
-                return idx;
-            }
-
-            public string GetToken(int idx)
-            {
-                return mIdxToToken[idx];
-            }
-        }
-
         public string mName;
         public ArrayList<Text> mTexts
             = new ArrayList<Text>();
@@ -59,12 +36,24 @@ namespace Detextive
             = new Dictionary<string, ArrayList<double>>();
         public Dictionary<string, SparseVector<double>> mFeatureVectors
             = new Dictionary<string, SparseVector<double>>();
-        public static Dictionary<string, FeatureMapping> mFeatureMappings
-            = new Dictionary<string, FeatureMapping>();
+        public bool mIsTestAuthor
+            = false;
 
         public Author(string name)
         {
             mName = name;
+        }
+
+        public void ComputeFeatures()
+        {
+            foreach (Text text in mTexts)
+            {
+                text.ComputeFeatures();
+                foreach (KeyValuePair<string, double> feature in text.mFeatures)
+                {
+                    AddFeatureVal(feature.Key, feature.Value);
+                }
+            }
         }
 
         public void AddFeatureVal(string featureName, double val)
@@ -80,53 +69,27 @@ namespace Detextive
             }
         }
 
-        private SparseVector<double> GetSparseVector(string vectorName, ArrayList<KeyDat<int, string>> vec)
-        {
-            FeatureMapping mapping;
-            if (!mFeatureMappings.TryGetValue(vectorName, out mapping))
+        public void ComputeCentroids()
+        {            
+            foreach (string fvName in mTexts[0].mFeatureVectors.Keys)
             {
-                mFeatureMappings.Add(vectorName, mapping = new FeatureMapping());
+                ArrayList<SparseVector<double>> tmp = new ArrayList<SparseVector<double>>();
+                foreach (Text text in mTexts)
+                {
+                    tmp.Add(text.mFeatureVectors[fvName]);
+                }
+                mFeatureVectors.Add(fvName, ModelUtils.ComputeCentroid(tmp, CentroidType.NrmL2)); 
             }
-            SparseVector<double> sparseVec = new SparseVector<double>();
-            foreach (KeyDat<int, string> item in vec)
-            {
-                sparseVec[mapping.GetIdx(item.Dat)] = item.Key;
-            }
-            ModelUtils.NrmVecL2(sparseVec);
-            return sparseVec;
         }
 
-        public Pair<string, double>[] GetTopVectorItems(string vectorName, int n)
-        { 
+        public Pair<string, double>[] GetTopVectorItems(string vectorName, int n, BowSpace bowSpc)
+        {
             SparseVector<double> vec = mFeatureVectors[vectorName];
-            FeatureMapping mapping = mFeatureMappings[vectorName];
             return vec
                 .OrderByDescending(x => x.Dat)
                 .Take(n)
-                .Select(x => new Pair<string, double>(mapping.GetToken(x.Idx), x.Dat))
+                .Select(x => new Pair<string, double>(bowSpc.Words[x.Idx].Stem, x.Dat))
                 .ToArray();
-        }
-
-        public void AddFeatureVector(string vectorName, ArrayList<KeyDat<int, string>> vec)
-        {
-            SparseVector<double> currentVec;
-            if (!mFeatureVectors.TryGetValue(vectorName, out currentVec))
-            {
-                mFeatureVectors.Add(vectorName, GetSparseVector(vectorName, vec));
-            }
-            else
-            {
-                mFeatureVectors[vectorName] 
-                    = ModelUtils.ComputeCentroid(new SparseVector<double>[] { currentVec, GetSparseVector(vectorName, vec) }, CentroidType.Sum);
-            }
-        }
-
-        public void NormalizeFeatureVectors()
-        {
-            foreach (SparseVector<double> vec in mFeatureVectors.Values)
-            {
-                ModelUtils.NrmVecL2(vec);
-            }
         }
 
         public double GetAvg(string featureName)
@@ -145,22 +108,12 @@ namespace Detextive
             stdDev = new Dictionary<string, double>();
             foreach (string featureName in featureNames)
             {
-                if (mFeatures.ContainsKey(featureName))
-                {
-                    double avg = GetAvg(featureName);
-                    double var = Math.Pow(GetStdDev(featureName), 2);
-                    double otherAvg = otherAuthor.GetAvg(featureName);
-                    double otherVar = Math.Pow(otherAuthor.GetStdDev(featureName), 2);
-                    diff.Add(featureName, Math.Abs(avg - otherAvg));
-                    stdDev.Add(featureName, Math.Sqrt(var + otherVar)); // http://stattrek.com/random-variable/combination.aspx
-                }
-                else
-                {
-                    SparseVector<double> vec = mFeatureVectors[featureName];
-                    SparseVector<double> otherVec = otherAuthor.mFeatureVectors[featureName];
-                    double cosSim = CosineSimilarity.Instance.GetSimilarity(vec, otherVec);
-                    diff.Add(featureName, 1.0 - cosSim);                
-                }
+                double avg = GetAvg(featureName);
+                double var = Math.Pow(GetStdDev(featureName), 2);
+                double otherAvg = otherAuthor.GetAvg(featureName);
+                double otherVar = Math.Pow(otherAuthor.GetStdDev(featureName), 2);
+                diff.Add(featureName, Math.Abs(avg - otherAvg));
+                stdDev.Add(featureName, Math.Sqrt(var + otherVar)); // http://stattrek.com/random-variable/combination.aspx
             }
         }
     }
@@ -171,6 +124,12 @@ namespace Detextive
         public string mAuthor;
         public ArrayList<Sentence> mSentences
             = new ArrayList<Sentence>();
+        public Dictionary<string, double> mFeatures
+            = new Dictionary<string, double>();
+        public Dictionary<string, SparseVector<double>> mFeatureVectors
+            = new Dictionary<string, SparseVector<double>>();
+        public bool mIsTestText
+            = false;
         public string mHtmlFileName
             = Guid.NewGuid().ToString("N") + ".html";
 
@@ -213,6 +172,25 @@ namespace Detextive
             { 
                 mSentences.Add(sentence); 
             }
+        }
+
+        public void ComputeFeatures()
+        {
+            double ttr, hl, honore, brunet;
+            Features.GetVocabularyRichness(this, out ttr, out hl, out honore, out brunet);
+            double ari, flesch, fog, rWords, rChars, rSyllables, rComplex;
+            Features.GetReadabilityFeatures(this, out ari, out flesch, out fog, out rWords, out rChars, out rSyllables, out rComplex);
+            mFeatures.Add("ttr", ttr);
+            mFeatures.Add("brunet", brunet);
+            mFeatures.Add("honore", honore);
+            mFeatures.Add("hl", hl);
+            mFeatures.Add("ari", ari);
+            mFeatures.Add("flesch", flesch);
+            mFeatures.Add("fog", fog);
+            mFeatures.Add("rWords", rWords);
+            mFeatures.Add("rChars", rChars);
+            mFeatures.Add("rSyllables", rSyllables);
+            mFeatures.Add("rComplex", rComplex);
         }
 
         public string GetHtml()
