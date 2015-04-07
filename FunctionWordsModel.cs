@@ -27,10 +27,7 @@ namespace Detextive
             foreach (Text text in texts) 
             { 
                 text.mFeatureVectors.Add("fuw", bows[i]);
-                //if (!text.mIsTestText)
-                {
-                    mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i]));
-                }
+                mDataset.Add(new LabeledExample<string, SparseVector<double>>(text.mAuthor, bows[i]));
                 i++;
             }
             TrainModels();

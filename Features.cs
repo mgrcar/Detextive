@@ -24,6 +24,7 @@ namespace Detextive
             return c;
         }
 
+        // http://www.ideosity.com/ourblog/post/ideosphere-blog/2010/01/14/readability-tests-and-formulas
         public static void GetReadabilityFeatures(Text txt, out double ari, out double flesch, out double fog, out double rWords, out double rChars, out double rSyllables, out double rComplex)
         {
             int numWords = 0;
@@ -45,7 +46,7 @@ namespace Detextive
                         numCharsThis += tkn.mTokenStr.Length;
                         int tmp = CountSyllables(tkn.mTokenStr);
                         numSyllablesThis += tmp;
-                        if (tmp > 2) { numComplexWordsThis++; }
+                        if (tmp > 2 && !tkn.mTag.StartsWith("Sl")) { numComplexWordsThis++; } // NTH: ignore typical suffixes when counting syllables, handle compound words
                     }
                 }
                 if (numWordsThis > 0) { numSentences++; }
