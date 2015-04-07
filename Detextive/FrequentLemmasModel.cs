@@ -44,7 +44,7 @@ namespace Detextive
                 .OrderByDescending(x => x.Key)
                 .Take(Convert.ToInt32(Utils.GetConfigValue("NumFrequentLemmas", "100")))
                 .Select(x => x.Dat));
-            ArrayList<SparseVector<double>> bows = mBowSpace.InitializeTokenized(texts.Select(x => (ITokenizer)new Tokenizer(x, filter)), /*largeScale=*/false);
+            ArrayList<SparseVector<double>> bows = mBowSpace.InitializeTokenized(texts.Select(x => new Tokenizer(x, filter).GetTokens(null)), /*largeScale=*/false);
             int i = 0;
             foreach (Text text in texts) 
             { 
@@ -84,19 +84,9 @@ namespace Detextive
                 set { throw new NotImplementedException(); }
             }
 
-            public ITokenizerEnumerator GetEnumerator()
+            public ITokenizerEnumerable GetTokens(string text)
             {
-                throw new NotImplementedException();
-            }
-
-            IEnumerator<string> IEnumerable<string>.GetEnumerator()
-            {
-                return mTokens.GetEnumerator();
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
+                return new TokenizerEnumerable(new ArrayTokenizerEnumerator(mTokens));
             }
 
             public void Save(BinarySerializer writer)
