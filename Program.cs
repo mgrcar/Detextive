@@ -28,6 +28,8 @@ namespace Detextive
             = Convert.ToInt32(Utils.GetConfigValue("VectorItemsListSize", "100"));
         static string OUTPUT_FILE
             = Utils.GetConfigValue("OutputFile", "output.tsv.txt");
+        static string UNKNOWN_AUTHOR
+            = Utils.GetConfigValue("UnknownAuthor");
 
         static void WriteHeader(StreamWriter w)
         {
@@ -179,10 +181,6 @@ namespace Detextive
 
         static void Main(string[] args)
         {
-            foreach (string resName in "bootstrap.min.css,bootstrap.min.js,code.js,jquery.js,jquery.tablesorter.min.js,sort_asc.png,sort_both.png,sort_desc.png,styles.css".Split(','))
-            {
-                CopyToOutput(resName, OUTPUT_PATH);
-            }
             StringBuilder featuresTsv = new StringBuilder();
             StringBuilder compareTsv = new StringBuilder();
             featuresTsv.AppendLine("Avtor,DRB,BI,HS,HL,DRL,BI-L,HS-L,HL-L,B/P,Zn./B,Zl./B,DKB,ARI,Flesch,Fog".Replace(",", "\t"));
@@ -190,29 +188,20 @@ namespace Detextive
             Logger logger = Logger.GetRootLogger();
             logger.LocalLevel = Logger.Level.Debug;
             logger.LocalOutputType = Logger.OutputType.Custom;
-            Logger.CustomOutput =
-                delegate(string loggerName, Logger.Level level, string funcName, Exception e, string message, object[] msgArgs)
-                {
-                    Console.WriteLine(message, msgArgs);
-                };
+            Logger.CustomOutput = delegate(string loggerName, Logger.Level level, string funcName, Exception e, string message, object[] msgArgs) {
+                Console.WriteLine(message, msgArgs);
+            };
             // load POS tagger models
             logger.Info("Main", "Nalagam modele za oblikoslovno analizo ...");
             PartOfSpeechTagger posTagger = new PartOfSpeechTagger(POS_TAGGER_MODEL, LEMMATIZER_MODEL);
             // load and preprocess texts
-            MultiSet<string> tokens = new MultiSet<string>();
-            MultiSet<string> lemmas = new MultiSet<string>();
             logger.Info("Main", "Nalagam podatke ...");
             Dictionary<string, Author> authors = new Dictionary<string, Author>();
             DirectoryInfo[] authorDirs = new DirectoryInfo(DATA_FOLDER).GetDirectories();//.Take(3).ToArray();
             foreach (DirectoryInfo authorDir in authorDirs)
             {
                 string authorName = authorDir.Name;
-                bool isTaggedAuthor = false;
-                if (authorName.EndsWith(".tag", StringComparison.OrdinalIgnoreCase))
-                {
-                    authorName = authorName.Substring(0, authorName.Length - 4);
-                    isTaggedAuthor = true;
-                }
+                bool isTaggedAuthor = authorName.Equals(UNKNOWN_AUTHOR, StringComparison.OrdinalIgnoreCase);
                 logger.Info("Main", "Obravnavam avtorja \"" + authorName + "\" ...");
                 FileInfo[] authorFiles = authorDir.GetFiles("*.txt");
                 foreach (FileInfo authorFile in authorFiles)
@@ -271,6 +260,10 @@ namespace Detextive
 
             // write results
             logger.Info("Main", "Pišem rezultate ...");
+            foreach (string resName in "bootstrap.min.css,bootstrap.min.js,code.js,jquery.js,jquery.tablesorter.min.js,sort_asc.png,sort_both.png,sort_desc.png,styles.css".Split(','))
+            {
+                CopyToOutput(resName, OUTPUT_PATH);
+            }
             using (StreamWriter wIdx = new StreamWriter(OUTPUT_PATH + "\\index.html", /*append=*/false, Encoding.UTF8))
             {
                 WriteHeader(wIdx);
@@ -376,7 +369,6 @@ namespace Detextive
                             wDoc.WriteLine("</tbody>");
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("</div>");
-
                             wDoc.WriteLine("<h2>Znakovna zaporedja</h2>");
                             wDoc.WriteLine("<p><a href='javascript:void(0)' data-toggle='collapse' data-target='#cng'>Seznam znakovnih zaporedij</a></p>");
                             wDoc.WriteLine("<div id='cng' class='collapse'>");
@@ -393,7 +385,6 @@ namespace Detextive
                             wDoc.WriteLine("</tbody>");
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("</div>");
-
                             wDoc.WriteLine("<h2>Oblikoslovne oznake</h2>");
                             wDoc.WriteLine("<p><a href='javascript:void(0)' data-toggle='collapse' data-target='#pos'>Seznam oblikoslovnih oznak</a></p>");
                             wDoc.WriteLine("<div id='pos' class='collapse'>");
@@ -410,7 +401,6 @@ namespace Detextive
                             wDoc.WriteLine("</tbody>");
                             wDoc.WriteLine("</table>");
                             wDoc.WriteLine("</div>");
-
                             WriteFooter(wDoc);
                         }
                     }
@@ -443,18 +433,21 @@ namespace Detextive
                     featuresTsv.AppendLine();
                     wIdx.WriteLine("</tbody>");
                     wIdx.WriteLine("</table>");
-                    wIdx.WriteLine("<h4>Razlikovalna moč značilk</h4>");
-                    wIdx.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
-                    wIdx.WriteLine("<thead>");
-                    wIdx.WriteLine("<tr><th>Značilka</th><th>Utež</th></tr>");
-                    wIdx.WriteLine("</thead>");
-                    wIdx.WriteLine("<tbody>");
-                    foreach (string pKey in author.mFeatures.Keys.Where(x => x.StartsWith("p_")))
+                    if (!author.mIsTagged)
                     {
-                        WriteFeature(wIdx, pKey.Substring(2), author.GetAvg(pKey), author.GetStdDev(pKey), /*sameCell=*/true);
+                        wIdx.WriteLine("<h4>Razlikovalna moč značilk</h4>");
+                        wIdx.WriteLine("<table class='tablesorter table table-bordered table-striped'>");
+                        wIdx.WriteLine("<thead>");
+                        wIdx.WriteLine("<tr><th>Značilka</th><th>Utež</th></tr>");
+                        wIdx.WriteLine("</thead>");
+                        wIdx.WriteLine("<tbody>");
+                        foreach (string pKey in author.mFeatures.Keys.Where(x => x.StartsWith("p_")))
+                        {
+                            WriteFeature(wIdx, pKey.Substring(2), author.GetAvg(pKey), author.GetStdDev(pKey), /*sameCell=*/true);
+                        }
+                        wIdx.WriteLine("</tbody>");
+                        wIdx.WriteLine("</table>");
                     }
-                    wIdx.WriteLine("</tbody>");
-                    wIdx.WriteLine("</table>");
                     wIdx.WriteLine("<h4>Funkcijske besede</h4>");
                     wIdx.WriteLine("<p><a href='javascript:void(0)' data-toggle='collapse' data-target='#fuw_{0}'>Seznam funkcijskih besed</a></p>", authorNum);
                     wIdx.WriteLine("<div id='fuw_{0}' class='collapse'>", authorNum);
