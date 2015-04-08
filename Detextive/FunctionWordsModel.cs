@@ -65,12 +65,6 @@ namespace Detextive
                 }
             }
 
-            public string Text
-            {
-                get { throw new NotImplementedException(); }
-                set { throw new NotImplementedException(); }
-            }
-
             public ITokenizerEnumerable GetTokens(string text)
             {
                 return new TokenizerEnumerable(new ArrayTokenizerEnumerator(mTokens));
